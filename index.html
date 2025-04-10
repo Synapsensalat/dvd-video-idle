@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Idle DVD Bounce - CRT Evolved</title> <!-- Updated Title -->
+    <title>DVD Logo Idle</title> <!-- Updated Title -->
     <style>
         :root {
             --tv-bg: #333;
@@ -19,131 +19,179 @@
             --spark-color-2: #ff0;
             --logo-brightness: 1.1; /* Make logo slightly brighter */
             --perfect-hit-color: #ffaa00; /* Orange for perfect/crit */
+            --corner-hit-color: #0f0; /* Green for corner hit text */
 
 
-/* Dynamic logo size variables - set by JS /
---logo-dynamic-height: 30px; / Default fallback (larger) /
---logo-dynamic-width: 48px; / Default fallback (larger) */
-}
+            /* Dynamic logo size variables - set by JS */
+            --logo-dynamic-height: 30px; /* Default fallback (larger) */
+            --logo-dynamic-width: 48px; /* Default fallback (larger) */
+        }
 
-html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-family: 'Courier New', Courier, monospace; color: var(--text-color); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; }
-    #game-container { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 800px; padding: 2vh 10px; box-sizing: border-box; }
-    #tv-frame { background-color: var(--tv-bg); border: 10px solid var(--border-color); border-radius: 25px / 40px; padding: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px; position: relative; width: 90vw; max-width: 600px; aspect-ratio: 16 / 9; display: flex; justify-content: center; align-items: center; flex-shrink: 0; transition: box-shadow 0.5s ease-in-out; /* For Overcharge effect */ }
+        html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-family: 'Courier New', Courier, monospace; color: var(--text-color); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; }
+            #game-container { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 800px; padding: 2vh 10px; box-sizing: border-box; }
+            #tv-frame { background-color: var(--tv-bg); border: 10px solid var(--border-color); border-radius: 25px / 40px; padding: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px; position: relative; width: 90vw; max-width: 600px; aspect-ratio: 16 / 9; display: flex; justify-content: center; align-items: center; flex-shrink: 0; /* Remove transition: box-shadow 0.5s ease-in-out; /* For Overcharge effect */ }
 
-    #tv-screen {
-        width: 100%; height: 100%;
-        background-color: var(--screen-bg);
-        position: relative;
-        overflow: hidden;
-        border-radius: 5px;
-        box-shadow: inset 0 0 15px rgba(0,0,0,0.7);
-        filter: url(#crt-effect);
-    }
+            #tv-screen {
+                width: 100%; height: 100%;
+                background-color: var(--screen-bg);
+                position: relative;
+                overflow: hidden;
+                border-radius: 5px;
+                box-shadow: inset 0 0 15px rgba(0,0,0,0.7);
+                filter: url(#crt-effect);
+            }
 
-    #tv-screen::before { /* Scanlines */
-        content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-        background-size: 100% 3px, 6px 100%;
-        z-index: 2; pointer-events: none; animation: crt-scanline 120s linear infinite;
-    }
-    #tv-screen::after { /* No Vignette */
-        content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        border-radius: inherit; z-index: 3; pointer-events: none;
-    }
-    @keyframes crt-scanline { 0% { background-position: 0 0; } 100% { background-position: 0 100%; } }
+            #tv-screen::before { /* Scanlines */
+                content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+                background-size: 100% 3px, 6px 100%;
+                z-index: 2; pointer-events: none; animation: crt-scanline 120s linear infinite;
+            }
+            #tv-screen::after { /* No Vignette */
+                content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                border-radius: inherit; z-index: 3; pointer-events: none;
+            }
+            @keyframes crt-scanline { 0% { background-position: 0 0; } 100% { background-position: 0 100%; } }
 
-    /* --- DVD Logo Box Style --- */
-    .box {
-        position: absolute;
-        background-color: #ffffff; /* Start white, changes dynamically */
-        /* Use dynamic size variables */
-        width: var(--logo-dynamic-width);
-        height: var(--logo-dynamic-height);
-        mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png');
-        -webkit-mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png');
-        mask-size: contain; -webkit-mask-size: contain;
-        mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
-        mask-position: center; -webkit-mask-position: center;
-        transition: background-color 0.1s ease-out;
-        z-index: 1;
-        filter: brightness(var(--logo-brightness)); /* Make logo slightly brighter */
-    }
+            /* --- DVD Logo Box Style --- */
+            .box {
+                position: absolute;
+                background-color: #ffffff; /* Start white, changes dynamically */
+                /* Use dynamic size variables */
+                width: var(--logo-dynamic-width);
+                height: var(--logo-dynamic-height);
+                mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png');
+                -webkit-mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png');
+                mask-size: contain; -webkit-mask-size: contain;
+                mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
+                mask-position: center; -webkit-mask-position: center;
+                transition: background-color 0.1s ease-out;
+                z-index: 1;
+                filter: brightness(var(--logo-brightness)); /* Make logo slightly brighter */
+            }
 
-    /* --- Flash & Particle Effects --- */
-    .corner-hit-flash {
-        background-color: var(--highlight-color) !important; /* Yellow flash for corners */
-        z-index: 5;
-    }
-    .perfect-hit-flash { /* New flash for perfect/critical hits */
-         background-color: var(--perfect-hit-color) !important; /* Orange flash */
-         filter: brightness(1.5) !important; /* Make it extra bright */
-         z-index: 6; /* Above normal corner flash */
-    }
-    .spark-particle {
-        position: absolute; width: 3px; height: 3px; border-radius: 50%;
-        pointer-events: none; z-index: 10; opacity: 1;
-        transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.9, 1), opacity 0.6s ease-out;
-    }
+            /* --- Flash & Particle Effects --- */
+            .corner-hit-flash {
+                background-color: var(--highlight-color) !important; /* Yellow flash for corners */
+                z-index: 5;
+            }
+            .perfect-hit-flash { /* New flash for perfect/critical hits */
+                 background-color: var(--perfect-hit-color) !important; /* Orange flash */
+                 filter: brightness(1.5) !important; /* Make it extra bright */
+                 z-index: 6; /* Above normal corner flash */
+            }
+            .spark-particle {
+                position: absolute; width: 3px; height: 3px; border-radius: 50%;
+                pointer-events: none; z-index: 10; opacity: 1;
+                transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.9, 1), opacity 0.6s ease-out;
+            }
 
-    /* --- Screen Overcharge Effect --- */
-    #tv-frame.overcharged {
-        box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.6), 0 0 15px 5px var(--highlight-color-hits);
-        animation: pulseGlow 2s infinite alternate ease-in-out;
-    }
-    @keyframes pulseGlow {
-        from { box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.6), 0 0 10px 3px var(--highlight-color-hits); }
-        to { box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.6), 0 0 25px 8px var(--highlight-color); }
-    }
+            /* --- Screen Overcharge Effect (CSS remains, JS logic removed) --- */
+            #tv-frame.overcharged {
+                box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.6), 0 0 15px 5px var(--highlight-color-hits);
+                animation: pulseGlow 2s infinite alternate ease-in-out;
+            }
+            @keyframes pulseGlow {
+                from { box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.6), 0 0 10px 3px var(--highlight-color-hits); }
+                to { box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.6), 0 0 25px 8px var(--highlight-color); }
+            }
 
 
-    /* --- Controls & Score --- */
-    #controls { text-align: center; width: 95%; max-width: 700px; display: flex; flex-direction: column; gap: 15px; padding-bottom: 20px; }
-    .section-header { font-size: clamp(1.1rem, 3.2vw, 1.5rem); margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 20px; }
-    .score-area { display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 5px; }
-    .score-display { font-size: clamp(1.1rem, 3vw, 1.6rem); font-weight: bold; padding: 5px 10px; border-radius: 5px; background-color: #222; flex-grow: 1; text-align: center;}
-    #corner-score-display { color: var(--highlight-color); text-shadow: 0 0 5px var(--highlight-color); border: 1px solid var(--highlight-color); }
-    #hit-score-display { color: var(--highlight-color-hits); text-shadow: 0 0 5px var(--highlight-color-hits); border: 1px solid var(--highlight-color-hits); }
-    #meta-score-display { color: var(--meta-color); text-shadow: 0 0 5px var(--meta-color); border: 1px solid var(--meta-color); margin-top: 5px; font-size: clamp(1rem, 2.8vw, 1.4rem); } /* For Fragments */
-    #streak-display { font-size: clamp(0.9rem, 2.5vw, 1.1rem); color: var(--text-color); text-shadow: 0 0 3px var(--text-color); margin-top: -10px; margin-bottom: 5px; height: 1.2em; opacity: 0; transition: opacity 0.3s ease-in-out; }
-    #streak-display.visible { opacity: 1; }
+            /* --- Controls & Score --- */
+            #controls { text-align: center; width: 95%; max-width: 700px; display: flex; flex-direction: column; gap: 15px; padding-bottom: 20px; }
+            .section-header { font-size: clamp(1.1rem, 3.2vw, 1.5rem); margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 20px; }
+            .score-area { display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 5px; }
+            .score-display { font-size: clamp(1.1rem, 3vw, 1.6rem); font-weight: bold; padding: 5px 10px; border-radius: 5px; background-color: #222; flex-grow: 1; text-align: center;}
+            #corner-score-display { color: var(--highlight-color); text-shadow: 0 0 5px var(--highlight-color); border: 1px solid var(--highlight-color); }
+            #hit-score-display { color: var(--highlight-color-hits); text-shadow: 0 0 5px var(--highlight-color-hits); border: 1px solid var(--highlight-color-hits); }
+            #meta-score-display { color: var(--meta-color); text-shadow: 0 0 5px var(--meta-color); border: 1px solid var(--meta-color); margin-top: 5px; font-size: clamp(1rem, 2.8vw, 1.4rem); } /* For Fragments */
+            #streak-display { font-size: clamp(0.9rem, 2.5vw, 1.1rem); color: var(--text-color); text-shadow: 0 0 3px var(--text-color); margin-top: -10px; margin-bottom: 5px; height: 1.2em; opacity: 0; transition: opacity 0.3s ease-in-out; }
+            #streak-display.visible { opacity: 1; }
 
-    /* --- Upgrades --- */
-    .upgrades-container { border: 2px solid var(--border-color); border-radius: 8px; padding: 10px; background-color: rgba(0,0,0,0.2); }
-    .upgrades-header { font-size: clamp(1rem, 3vw, 1.3rem); margin-bottom: 10px; font-weight: bold; }
-    #corner-upgrades-header { color: var(--highlight-color); }
-    #hit-upgrades-header { color: var(--highlight-color-hits); }
-    #meta-upgrades-header { color: var(--meta-color); } /* For Meta */
-    /* --- Adjusted minmax for better column wrapping --- */
-    .upgrades-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 8px; width: 100%; }
-    .upgrade-button { background-color: var(--border-color); color: var(--text-color); border: 2px solid var(--tv-bg); padding: 8px 5px; border-radius: 5px; cursor: pointer; font-size: clamp(0.75rem, 2.2vw, 0.95rem); transition: background-color 0.2s, transform 0.1s; text-align: center; min-height: 65px; /* Increased height */ display: flex; flex-direction: column; justify-content: center; align-items: center; }
-    .upgrade-button:hover:not(:disabled) { background-color: #666; }
-    .upgrade-button:active:not(:disabled) { transform: scale(0.95); }
-    .upgrade-button:disabled { background-color: #444; color: var(--disabled-color); cursor: not-allowed; opacity: 0.7; }
-    .upgrade-cost { font-size: 0.85em; font-weight: bold; margin-top: 4px; }
-    .upgrade-cost.corner { color: var(--highlight-color); }
-    .upgrade-cost.hit { color: var(--highlight-color-hits); }
-    .upgrade-cost.meta { color: var(--meta-color); } /* For Meta */
+            /* --- Upgrades --- */
+            .upgrades-container { border: 2px solid var(--border-color); border-radius: 8px; padding: 10px; background-color: rgba(0,0,0,0.2); }
+            .upgrades-header { font-size: clamp(1rem, 3vw, 1.3rem); margin-bottom: 10px; font-weight: bold; }
+            #corner-upgrades-header { color: var(--highlight-color); }
+            #hit-upgrades-header { color: var(--highlight-color-hits); }
+            #meta-upgrades-header { color: var(--meta-color); } /* For Meta */
+            /* --- Adjusted minmax for better column wrapping --- */
+            .upgrades-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 8px; width: 100%; }
+            .upgrade-button { background-color: var(--border-color); color: var(--text-color); border: 2px solid var(--tv-bg); padding: 8px 5px; border-radius: 5px; cursor: pointer; font-size: clamp(0.75rem, 2.2vw, 0.95rem); transition: background-color 0.2s, transform 0.1s; text-align: center; min-height: 65px; /* Increased height */ display: flex; flex-direction: column; justify-content: center; align-items: center; }
+            .upgrade-button:hover:not(:disabled) { background-color: #666; }
+            .upgrade-button:active:not(:disabled) { transform: scale(0.95); }
+            .upgrade-button:disabled { background-color: #444; color: var(--disabled-color); cursor: not-allowed; opacity: 0.7; }
+            .upgrade-cost { font-size: 0.85em; font-weight: bold; margin-top: 4px; }
+            .upgrade-cost.corner { color: var(--highlight-color); }
+            .upgrade-cost.hit { color: var(--highlight-color-hits); }
+            .upgrade-cost.meta { color: var(--meta-color); } /* For Meta */
 
-    /* --- Reboot Section --- */
-    #reboot-section { margin-top: 20px; padding: 15px; border: 2px dashed var(--meta-color); border-radius: 8px; background-color: rgba(50, 0, 50, 0.2); text-align: center; }
-    #reboot-info { margin-bottom: 10px; font-size: 0.9em; }
-    #reboot-button { background-color: var(--meta-color); color: #fff; border: 2px solid #303; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1.1rem; font-weight: bold; transition: background-color 0.2s, transform 0.1s; }
-    #reboot-button:hover { background-color: #ff40ff; }
-    #reboot-button:active { transform: scale(0.95); }
-    #reboot-button:disabled { background-color: #606; color: var(--disabled-color); cursor: not-allowed; }
+            /* --- Reboot Section --- */
+            #reboot-section { margin-top: 20px; padding: 15px; border: 2px dashed var(--meta-color); border-radius: 8px; background-color: rgba(50, 0, 50, 0.2); text-align: center; }
+            #reboot-info { margin-bottom: 10px; font-size: 0.9em; }
+            #reboot-gain-preview { margin-bottom: 10px; font-weight: bold; } /* Added margin */
+            #reboot-button { background-color: var(--meta-color); color: #fff; border: 2px solid #303; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1.1rem; font-weight: bold; transition: background-color 0.2s, transform 0.1s; }
+            #reboot-button:hover { background-color: #ff40ff; }
+            #reboot-button:active { transform: scale(0.95); }
+            #reboot-button:disabled { background-color: #606; color: var(--disabled-color); cursor: not-allowed; }
 
-    /* --- Notification --- */
-        #notification { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); background-color: rgba(0, 130, 150, 0.85); /* Changed from green to dark cyan/teal */ color: white; padding: 8px 15px; border-radius: 5px; font-size: 0.9rem; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none; z-index: 1000; }
-    #notification.show { opacity: 1; }
-    #notification.perfect { background-color: rgba(255, 150, 0, 0.9); font-weight: bold; } /* Style for special notifications */
+            /* --- Notification --- */
+            #notification { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); background-color: rgba(0, 130, 150, 0.85); /* Changed from green to dark cyan/teal */ color: white; padding: 8px 15px; border-radius: 5px; font-size: 0.9rem; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none; z-index: 1000; }
+            #notification.show { opacity: 1; }
+            #notification.perfect { background-color: rgba(255, 150, 0, 0.9); font-weight: bold; } /* Style for special notifications */
 
-</style>
+            /* --- Critical Hit Text --- */
+            .critical-hit-text {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-family: 'Courier New', Courier, monospace;
+                font-size: clamp(2rem, 6vw, 3rem); /* Responsive size */
+                font-weight: bold;
+                text-shadow: 2px 2px #333, 0 0 10px #fff; /* Basic CRT glow */
+                z-index: 100;
+                pointer-events: none;
+                opacity: 0; /* Start hidden */
+                animation: criticalHitAnim 1.2s ease-out forwards;
+            }
+
+            @keyframes criticalHitAnim {
+                0% { opacity: 1; transform: translate(-50%, -50%); } /* Appear center */
+                50% { opacity: 1; }
+                100% { opacity: 0; transform: translate(-50%, -120%); } /* Move up and fade out */
+            }
+
+            /* --- Corner Hit Text (NEW) --- */
+            .corner-hit-text {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: var(--corner-hit-color); /* Use CSS variable */
+                font-family: 'Courier New', Courier, monospace;
+                font-size: clamp(1.8rem, 5.5vw, 2.8rem); /* Slightly smaller than critical */
+                font-weight: bold;
+                text-shadow: 1px 1px black, 0 0 15px var(--corner-hit-color), 0 0 5px white; /* More intense glow */
+                z-index: 99; /* Below critical if they overlap */
+                pointer-events: none;
+                opacity: 0; /* Start hidden */
+                animation: cornerHitAnim 1.0s ease-out forwards; /* Slightly faster animation */
+            }
+
+            @keyframes cornerHitAnim {
+                0% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } /* Appear center, slightly larger */
+                50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                100% { opacity: 0; transform: translate(-50%, -130%) scale(0.8); } /* Move up faster, shrink slightly */
+            }
+
+
+    </style>
 
 </head>
 <body>
 
 <!-- SVG Filter Definition -->
-
 <svg style="position:absolute; height: 0; width: 0;" xmlns="http://www.w3.org/2000/svg" version="1.1">
   <defs>
     <filter id="crt-effect">
@@ -158,63 +206,61 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
 </svg>
 
 <!-- HTML Elements -->
-
 <div id="game-container">
     <div id="tv-frame">
         <div id="tv-screen">
             <!-- Boxes (Logos) & Particles added here by JS -->
+            <!-- Critical/Corner Hit Text will be added here by JS -->
         </div>
     </div>
 
-<div id="controls">
-    <div class="score-area">
-        <!-- Corner score display will be hidden/shown by JS -->
-        <div id="corner-score-display" class="score-display" style="display: none;">Corners: 0</div>
-        <div id="hit-score-display" class="score-display">Hits: 0</div>
+    <div id="controls">
+        <div class="score-area">
+            <!-- Corner score display will be hidden/shown by JS -->
+            <div id="corner-score-display" class="score-display" style="display: none;">Corners: 0</div>
+            <div id="hit-score-display" class="score-display">Hits: 0</div>
+        </div>
+         <!-- Added ID to this row for visibility control -->
+         <div id="meta-score-row" class="score-area" style="display: none;"> <!-- Second row for Meta Score -->
+            <div id="meta-score-display" class="score-display">Fragments: 0</div>
+         </div>
+
+        <div id="streak-display">Streak: 0 (x1.00)</div>
+
+
+        <!-- HIT UPGRADES FIRST -->
+         <div class="upgrades-container">
+             <div id="hit-upgrades-header" class="upgrades-header">Hit Upgrades</div>
+            <div id="hit-upgrades-section" class="upgrades-section"></div>
+        </div>
+        <!-- CORNER UPGRADES SECOND (Added Outer Container ID) -->
+        <!-- This container will be hidden/shown by JS -->
+        <div id="corner-upgrades-outer-container" class="upgrades-container" style="display: none;">
+            <div id="corner-upgrades-header" class="upgrades-header">Corner Upgrades</div>
+            <div id="corner-upgrades-section" class="upgrades-section"></div>
+        </div>
+
+         <!-- Reboot Section -->
+         <div id="reboot-section" style="display: none;"> <!-- Initially hidden -->
+             <div class="section-header" style="color: var(--meta-color);">System Reboot</div>
+             <div id="reboot-info">Reboot to gain System Fragments based on total corners this run.<br>Fragments grant permanent Meta Upgrades.</div>
+             <div id="reboot-gain-preview">You will gain ~0 Fragments on Reboot.</div>
+             <button id="reboot-button">Reboot System</button>
+         </div>
+
+         <!-- Meta Upgrades -->
+         <div id="meta-upgrades-container" class="upgrades-container" style="display: none;"> <!-- Initially hidden -->
+              <div id="meta-upgrades-header" class="upgrades-header">Fragment Upgrades</div>
+             <div id="meta-upgrades-section" class="upgrades-section"></div>
+         </div>
+
     </div>
-     <!-- Added ID to this row for visibility control -->
-     <div id="meta-score-row" class="score-area" style="display: none;"> <!-- Second row for Meta Score -->
-        <div id="meta-score-display" class="score-display">Fragments: 0</div>
-     </div>
-
-    <div id="streak-display">Streak: 0 (x1.0)</div>
-
-    <!-- Standard Upgrades -->
-    <div class="section-header">Standard Upgrades</div>
-    <!-- HIT UPGRADES FIRST -->
-     <div class="upgrades-container">
-         <div id="hit-upgrades-header" class="upgrades-header">Hit Upgrades (Use Hits)</div>
-        <div id="hit-upgrades-section" class="upgrades-section"></div>
-    </div>
-    <!-- CORNER UPGRADES SECOND (Added Outer Container ID) -->
-    <!-- This container will be hidden/shown by JS -->
-    <div id="corner-upgrades-outer-container" class="upgrades-container" style="display: none;">
-        <div id="corner-upgrades-header" class="upgrades-header">Corner Upgrades (Use Corners)</div>
-        <div id="corner-upgrades-section" class="upgrades-section"></div>
-    </div>
-
-     <!-- Reboot Section -->
-     <div id="reboot-section" style="display: none;"> <!-- Initially hidden -->
-         <div class="section-header" style="color: var(--meta-color);">System Reboot</div>
-         <div id="reboot-info">Reboot to gain System Fragments based on total corners this run.<br>Fragments grant permanent Meta Upgrades.</div>
-         <div id="reboot-gain-preview">You will gain ~0 Fragments on Reboot.</div>
-         <button id="reboot-button">Reboot System</button>
-     </div>
-
-     <!-- Meta Upgrades -->
-     <div id="meta-upgrades-container" class="upgrades-container" style="display: none;"> <!-- Initially hidden -->
-          <div id="meta-upgrades-header" class="upgrades-header">Meta Upgrades (Use Fragments)</div>
-         <div id="meta-upgrades-section" class="upgrades-section"></div>
-     </div>
-
-</div>
 </div>
 
 <div id="notification"></div>
 <!-- End of HTML Elements -->
 
 <!-- JavaScript -->
-
 <script>
     (function() { // IIFE
 
@@ -225,8 +271,8 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
 
         // --- Other Constants ---
         let screenWidth = 0, screenHeight = 0;
-        const HIT_STREAK_WINDOW_MS = 2000;
-        const SAVE_VERSION = 'v10'; // Increment save version for visibility flags
+        const HIT_STREAK_WINDOW_MS = 800;
+        const SAVE_VERSION = 'v2'; // Increment save version for new upgrades
         const SAVE_KEY = `idleBoxBounceSave_${SAVE_VERSION}`;
         const REBOOT_CORNER_THRESHOLD = 10; // Min total corners before reboot is suggested/worth it
 
@@ -332,15 +378,16 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
          // --- Upgrade Definitions ---
          const cornerUpgrades = [
              { id: 'cornerMultiplier', name: 'Corner Value', baseCost: 1, costFactor: 1.9, maxLevel: 30, getLevel: () => gameState.cornerMultiplierLevel, applyEffect: () => { gameState.cornerMultiplierLevel++; recalculateDerivedState(); showNotification(`Corner Hits grant ${formatScore(gameState.cornerHitValue)}!`); }, getDescription: (l, c) => `Lv ${l}: Get ${formatScore(deriveCornerValue(l+1))} per corner.<br>Cost: <span class="upgrade-cost corner">${formatScore(c)}</span>` },
-             { id: 'perfectCorner', name: 'Perfect Corner', baseCost: 25, costFactor: 2.2, maxLevel: 20, getLevel: () => gameState.perfectCornerLevel, applyEffect: () => { gameState.perfectCornerLevel++; recalculateDerivedState(); showNotification(`Perfect Corner chance/mult increased!`); }, getDescription: (l, c) => { const [chance, mult] = derivePerfectCornerStats(l+1); return `Lv ${l}: ${chance.toFixed(1)}% chance for x${mult} Corners.<br>Cost: <span class="upgrade-cost corner">${formatScore(c)}</span>`; } },
+             { id: 'perfectCorner', name: 'Perfect Corner', baseCost: 25, costFactor: 2.2, maxLevel: 20, getLevel: () => gameState.perfectCornerLevel, applyEffect: () => { gameState.perfectCornerLevel++; recalculateDerivedState(); showNotification(`Perfect Corner chance/mult increased!`); }, getDescription: (l, c) => { const [chance, mult] = derivePerfectCornerStats(l+1); return `Lv ${l}: ${chance.toFixed(1)}% chance for x${mult.toFixed(1)} Corners.<br>Cost: <span class="upgrade-cost corner">${formatScore(c)}</span>`; } }, // Updated desc for float mult
              { id: 'precisionTuning', name: 'Precision Tuning', baseCost: 500, costFactor: 3.0, maxLevel: 15, getLevel: () => gameState.precisionTuningLevel, applyEffect: () => { gameState.precisionTuningLevel++; recalculateDerivedState(); showNotification(`Corner value & base Hit value increased!`); }, getDescription: (l, c) => `Lv ${l}: +Corners, +${(derivePrecisionHitBoost(l+1)*100).toFixed(0)}% base Hits.<br>Cost: <span class="upgrade-cost corner">${formatScore(c)}</span>` },
              { id: 'multiBox', name: 'Add Logo', baseCost: 50, costFactor: 4, maxLevel: 5, getLevel: () => gameState.multiBoxLevel, applyEffect: () => { gameState.multiBoxLevel++; addBox(); showNotification(`Added another logo! Total: ${gameState.boxes.length}`); }, getDescription: (l, c) => `Lv ${l}: Add logo (${gameState.boxes.length} total).<br>Cost: <span class="upgrade-cost corner">${formatScore(c)}</span>` },
              { id: 'syncBonus', name: 'Sync Bonus', baseCost: 100, costFactor: 2.5, maxLevel: 10, getLevel: () => gameState.syncBonusLevel, applyEffect: () => { gameState.syncBonusLevel++; recalculateDerivedState(); showNotification(`Simultaneous corner hits x${gameState.syncCornerMultiplier.toFixed(1)} bonus!`); }, getDescription: (l, c) => `Lv ${l}: Multi-logo corner hits x${deriveSyncBonus(l+1).toFixed(1)} bonus.<br>Cost: <span class="upgrade-cost corner">${formatScore(c)}</span>` },
-             { id: 'screenOvercharge', name: 'Screen Overcharge', baseCost: 10000, costFactor: 10, maxLevel: 1, getLevel: () => gameState.screenOverchargeLevel, applyEffect: () => { gameState.screenOverchargeLevel++; recalculateDerivedState(); showNotification(`Screen Overcharge Activated!`); tvFrameElement?.classList.add('overcharged');}, getDescription: (l, c) => `Lv ${l}: Visual effect + tiny passive Corner gain.<br>Cost: <span class="upgrade-cost corner">${formatScore(c)}</span>` },
+             // <<< NEW CORNER UPGRADE (Replaced Screen Overcharge) >>>
+             { id: 'cornerEcho', name: 'Corner Echo', baseCost: 200, costFactor: 2.0, maxLevel: 15, getLevel: () => gameState.cornerEchoLevel, applyEffect: () => { gameState.cornerEchoLevel++; recalculateDerivedState(); showNotification(`Corner Echo gains bonus corners based on Hits!`); }, getDescription: (l, c) => `Lv ${l}: Corner hits gain +${(deriveCornerEchoBonus(l+1)*100).toFixed(1)}% of Hits Score.<br>Cost: <span class="upgrade-cost corner">${formatScore(c)}</span>` },
          ];
          const hitUpgrades = [
              { id: 'hitValue', name: 'Hit Value', baseCost: 10, costFactor: 1.6, maxLevel: 30, getLevel: () => gameState.hitValueLevel, applyEffect: () => { gameState.hitValueLevel++; recalculateDerivedState(); showNotification(`Wall hits grant ${formatScore(gameState.hitValue)} Hits!`); }, getDescription: (l, c) => `Lv ${l}: Get ${formatScore(deriveHitValue(l+1))} H/bounce.<br>Cost: <span class="upgrade-cost hit">${formatScore(c)}</span>` },
-             { id: 'criticalHit', name: 'Critical Hit', baseCost: 100, costFactor: 2.1, maxLevel: 20, getLevel: () => gameState.criticalHitLevel, applyEffect: () => { gameState.criticalHitLevel++; recalculateDerivedState(); showNotification(`Critical Hit chance/mult increased!`); }, getDescription: (l, c) => { const [chance, mult] = deriveCriticalHitStats(l+1); return `Lv ${l}: ${chance.toFixed(1)}% chance for x${mult} Hits.<br>Cost: <span class="upgrade-cost hit">${formatScore(c)}</span>`; } },
+             { id: 'criticalHit', name: 'Critical Hit', baseCost: 100, costFactor: 2.1, maxLevel: 20, getLevel: () => gameState.criticalHitLevel, applyEffect: () => { gameState.criticalHitLevel++; recalculateDerivedState(); showNotification(`Critical Hit chance/mult increased!`); }, getDescription: (l, c) => { const [chance, mult] = deriveCriticalHitStats(l+1); return `Lv ${l}: ${chance.toFixed(1)}% chance for x${mult.toFixed(1)} Hits.<br>Cost: <span class="upgrade-cost hit">${formatScore(c)}</span>`; } }, // Updated desc for float mult
              { id: 'momentumDrive', name: 'Momentum Drive', baseCost: 2500, costFactor: 2.8, maxLevel: 15, getLevel: () => gameState.momentumDriveLevel, applyEffect: () => { gameState.momentumDriveLevel++; recalculateDerivedState(); showNotification(`Hit value & base Corner value increased!`); }, getDescription: (l, c) => `Lv ${l}: +Hits, +${(deriveMomentumCornerBoost(l+1)*100).toFixed(0)}% base Corners.<br>Cost: <span class="upgrade-cost hit">${formatScore(c)}</span>` },
              { id: 'speedHits', name: 'Speed (Hits)', baseCost: 5, costFactor: 1.5, maxLevel: 30, getLevel: () => gameState.speedLevelHits, applyEffect: () => { gameState.speedLevelHits++; recalculateDerivedState(); showNotification("Speed Increased (via Hits)!"); }, getDescription: (l, c) => `Lv ${l}: Faster logos.<br>Cost: <span class="upgrade-cost hit">${formatScore(c)}</span>` },
              { id: 'hitStreak', name: 'Hit Streak', baseCost: 75, costFactor: 1.9, maxLevel: 20, getLevel: () => gameState.hitStreakLevel, applyEffect: () => { gameState.hitStreakLevel++; recalculateDerivedState(); showNotification(`Hit Streak bonus increased!`); }, getDescription: (l, c) => { const bonusPerHit = deriveStreakBonusPerHit(l+1); return `Lv ${l}: Rapid hits boost mult (+${(bonusPerHit*100).toFixed(1)}%/hit).<br>Cost: <span class="upgrade-cost hit">${formatScore(c)}</span>`; } },
@@ -351,6 +398,10 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
              { id: 'metaStartHitMult', name: 'Hit Start', baseCost: 2, costFactor: 2.5, maxLevel: 10, getLevel: () => gameState.metaStartHitMultLevel, applyEffect: () => { gameState.metaStartHitMultLevel++; recalculateDerivedState(); showNotification(`Starting Hit multiplier increased!`); }, getDescription: (l, c) => `Lv ${l}: Start with +${deriveMetaStartHitMult(l+1)} base Hit mult.<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
              { id: 'metaFragmentGain', name: 'Fragment Bonus', baseCost: 5, costFactor: 3, maxLevel: 15, getLevel: () => gameState.metaFragmentGainLevel, applyEffect: () => { gameState.metaFragmentGainLevel++; recalculateDerivedState(); showNotification(`Gain more Fragments on Reboot!`); }, getDescription: (l, c) => `Lv ${l}: +${((deriveMetaFragmentMult(l+1)-1)*100).toFixed(0)}% Fragment gain.<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
              { id: 'metaSpeed', name: 'Permanent Speed', baseCost: 10, costFactor: 4, maxLevel: 5, getLevel: () => gameState.metaSpeedLevel, applyEffect: () => { gameState.metaSpeedLevel++; recalculateDerivedState(); showNotification(`Permanent speed boost!`); }, getDescription: (l, c) => `Lv ${l}: +${((deriveMetaSpeedBoost(l+1)-1)*100).toFixed(0)}% base speed.<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
+             // <<< NEW META UPGRADE 1 >>>
+             { id: 'metaStreakStart', name: 'Streak Starter', baseCost: 8, costFactor: 3.5, maxLevel: 10, getLevel: () => gameState.metaStreakStartLevel, applyEffect: () => { gameState.metaStreakStartLevel++; recalculateDerivedState(); showNotification(`Permanent base Hit Streak bonus!`); }, getDescription: (l, c) => `Lv ${l}: +${(deriveMetaStreakStartBonus(l+1)).toFixed(2)} base streak mult.<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
+             // <<< NEW META UPGRADE 2 >>>
+             { id: 'metaCritPower', name: 'Enhanced Crits', baseCost: 15, costFactor: 4.0, maxLevel: 8, getLevel: () => gameState.metaCritPowerLevel, applyEffect: () => { gameState.metaCritPowerLevel++; recalculateDerivedState(); showNotification(`Permanent boost to Critical Hit multiplier!`); }, getDescription: (l, c) => `Lv ${l}: +${deriveMetaCritPowerBonus(l+1).toFixed(2)}x crit multiplier.<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
          ];
 
         // --- Core Game Logic ---
@@ -368,18 +419,17 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
              const deltaTime = Math.min(0.1, (timestamp - lastTimestamp) / 1000);
              lastTimestamp = timestamp;
 
-             // Passive Gain
-             if (gameState.passiveCornerGainPerSecond > 0 && gameState.hasHitFirstCorner) { // Only gain if corners are unlocked
-                addCornerScore(gameState.passiveCornerGainPerSecond * deltaTime, false);
-             }
+             // Passive Gain (Removed)
 
              // Update streak & reboot preview
-             if (gameState.hitStreakCounter > 0 && timestamp - gameState.lastHitTime > HIT_STREAK_WINDOW_MS) { gameState.hitStreakCounter = 0; updateStreakDisplay(); }
+             if (gameState.hitStreakCounter > 1 && timestamp - gameState.lastHitTime > HIT_STREAK_WINDOW_MS) { gameState.hitStreakCounter = 0; updateStreakDisplay(); }
              updateRebootPreview();
 
-             // Process Boxes
-             let cornerHitsThisFrame = 0;
-             let cornerHitLocations = [];
+             // --- MODIFIED: Corner Hit Processing ---
+             let cornerHitsThisFrame = 0; // Count *logos* hitting *any* corner this frame
+             let cornerHitLocations = []; // Store details of each corner hit this frame
+             // --- END MODIFICATION ---
+
              const currentSpeed = getCurrentSpeed();
              const effectiveBoxWidth = dynamicBoxWidth;
              const effectiveBoxHeight = dynamicBoxHeight;
@@ -407,7 +457,7 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
                 deltaY = Math.max(-effectiveBoxHeight * 0.9, Math.min(effectiveBoxHeight * 0.9, deltaY));
                 box.x += deltaX; box.y += deltaY;
 
-                let hitWall = false; let hitCorner = false; let cornerX = 0, cornerY = 0;
+                let hitWall = false;
 
                 // Collision Detection & Response
                 if (box.x <= 0 && boxVX < 0) { box.x = 0 + Math.random()*0.1; boxVX = Math.abs(boxVX); hitWall = true; }
@@ -422,35 +472,59 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
                     let scoreFromHit = gameState.hitValue; let isCriticalHit = false;
                     if (Math.random() < gameState.criticalHitChance) {
                          scoreFromHit *= gameState.criticalHitMultiplier; isCriticalHit = true;
-                         showNotification("Critical Hit!", true); flashBox(box.element, false, true);
+                         showCriticalHitEffect(); // Show CRT effect
+                         flashBox(box.element, false, true); // Keep the flash
                      }
 
                     gameState.hitStreakCounter++; gameState.lastHitTime = timestamp;
-                    const streakMultiplier = 1 + gameState.hitStreakCounter * gameState.streakBonusPerHit;
+                    // <<< MODIFIED: Apply base streak bonus >>>
+                    const streakMultiplier = 1 + gameState.metaStreakStartBonus + gameState.hitStreakCounter * gameState.streakBonusPerHit;
                     scoreFromHit *= streakMultiplier;
                     addHitScore(Math.ceil(scoreFromHit)); updateStreakDisplay();
 
                     if (gameState.ricochetChance > 0 && Math.random() < gameState.ricochetChance) { addHitScore(gameState.ricochetBonusHits); }
 
+                    // --- MODIFIED: Corner Hit Detection within Wall Hit ---
                     const cornerThreshold = Math.min(5, effectiveBoxWidth * 0.1, effectiveBoxHeight * 0.1);
-                    const isNearLeft = box.x <= cornerThreshold; const isNearRight = box.x >= screenWidth - effectiveBoxWidth - cornerThreshold;
-                    const isNearTop = box.y <= cornerThreshold; const isNearBottom = box.y >= screenHeight - effectiveBoxHeight - cornerThreshold;
+                    // Check position *at the time of impact* (or just after bounce adjustment)
+                    const isNearLeft = box.x <= cornerThreshold;
+                    const isNearRight = box.x >= screenWidth - effectiveBoxWidth - cornerThreshold;
+                    const isNearTop = box.y <= cornerThreshold;
+                    const isNearBottom = box.y >= screenHeight - effectiveBoxHeight - cornerThreshold;
 
-                    if ((isNearLeft && isNearTop) || (isNearRight && isNearTop) || (isNearLeft && isNearBottom) || (isNearRight && isNearBottom)) {
-                        hitCorner = true; cornerHitsThisFrame++; gameState.hitStreakCounter = 0; updateStreakDisplay();
-                        let scoreFromCorner = gameState.cornerHitValue; let isPerfectCorner = false;
-                        if (Math.random() < gameState.perfectCornerChance) {
-                            scoreFromCorner *= gameState.perfectCornerMultiplier; isPerfectCorner = true;
-                            showNotification("Perfect Corner!", true);
-                        }
-                        addCornerScore(Math.ceil(scoreFromCorner)); // This function now handles showing corner elements on first hit
+                    const isPotentialCorner = (isNearLeft && isNearTop) || (isNearRight && isNearTop) || (isNearLeft && isNearBottom) || (isNearRight && isNearBottom);
+
+                    if (isPotentialCorner) {
+                        // --- This box hit a corner area THIS FRAME ---
+                        cornerHitsThisFrame++; // Increment count of logos hitting corners
+                        gameState.hitStreakCounter = 0; updateStreakDisplay(); // Reset streak on corner hit
+
+                        let cornerX = 0, cornerY = 0;
                         if (isNearLeft && isNearTop) { cornerX = 0; cornerY = 0; }
                         else if (isNearRight && isNearTop) { cornerX = screenWidth; cornerY = 0; }
                         else if (isNearLeft && isNearBottom) { cornerX = 0; cornerY = screenHeight; }
                         else if (isNearRight && isNearBottom) { cornerX = screenWidth; cornerY = screenHeight; }
-                        cornerHitLocations.push({x: cornerX, y: cornerY, isPerfect: isPerfectCorner});
+
+                        let isPerfectCorner = false;
+                        if (Math.random() < gameState.perfectCornerChance) {
+                             isPerfectCorner = true;
+                             // Notification for perfect corner still shown immediately
+                             showNotification("Perfect Corner!", true);
+                        }
+
+                        // Store details for processing after loop
+                        cornerHitLocations.push({ x: cornerX, y: cornerY, isPerfect: isPerfectCorner, boxId: box.id });
+
+                        // Flash the box immediately
                         flashBox(box.element, true, isPerfectCorner);
-                    } else if (hitWall && !isCriticalHit) { /* Optional normal flash */ }
+
+                        // --- DO NOT ADD SCORE OR SHOW CORNER EFFECT HERE ---
+
+                    } else if (hitWall && !isCriticalHit) {
+                        // Optional normal flash for regular wall hit
+                        // flashBox(box.element, false, false); // Example if you want a subtle flash
+                    }
+                    // --- END MODIFIED CORNER DETECTION ---
                 }
 
                 box.vx = boxVX; box.vy = boxVY;
@@ -459,12 +533,46 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
                 if (box.element) { box.element.style.left = `${box.x}px`; box.element.style.top = `${box.y}px`; }
              });
 
-             // Process corner hits sync bonus & particles
-             if (cornerHitsThisFrame > 1 && gameState.syncCornerMultiplier > 1) {
-                  showNotification(`Sync Bonus! x${gameState.syncCornerMultiplier.toFixed(1)}`);
+             // --- MODIFIED: Process Corner Hits AFTER Loop ---
+             if (cornerHitLocations.length > 0) {
+                 // Get unique corner locations hit this frame
+                 const uniqueLocations = [...new Map(cornerHitLocations.map(item => [`${item.x}-${item.y}`, item])).values()];
+
+                 let totalCornerScoreThisFrame = 0;
+
+                 uniqueLocations.forEach(loc => {
+                     // Calculate base score for this unique corner hit
+                     let score = gameState.cornerHitValue;
+
+                     // <<< NEW: Apply Corner Echo Bonus >>>
+                     if (gameState.cornerEchoBonusPercent > 0 && gameState.hitScore > 0) {
+                         const echoBonus = Math.floor(gameState.hitScore * gameState.cornerEchoBonusPercent);
+                         score += echoBonus;
+                     }
+
+                     // Apply perfect bonus if this unique location had a perfect hit
+                     if (loc.isPerfect) {
+                         score *= gameState.perfectCornerMultiplier;
+                     }
+
+                     totalCornerScoreThisFrame += score;
+
+                     // Show effect and particles for each unique corner location hit
+                     showCornerHitEffect(); // <<< NEW EFFECT
+                     createSparkParticles(loc.x, loc.y, loc.isPerfect);
+                 });
+
+                 // Apply Sync Bonus based on total *logos* hitting corners
+                 if (cornerHitsThisFrame > 1 && gameState.syncCornerMultiplier > 1) {
+                     totalCornerScoreThisFrame *= gameState.syncCornerMultiplier;
+                     showNotification(`Sync Bonus! x${gameState.syncCornerMultiplier.toFixed(1)}`);
+                 }
+
+                 // Add the final calculated score for all corner hits this frame
+                 addCornerScore(Math.ceil(totalCornerScoreThisFrame)); // Handles first hit visibility etc.
              }
-             const uniqueLocations = [...new Map(cornerHitLocations.map(item => [`${item.x}-${item.y}`, item])).values()];
-             uniqueLocations.forEach(loc => createSparkParticles(loc.x, loc.y, loc.isPerfect));
+             // --- END MODIFIED CORNER PROCESSING ---
+
 
              // Save game periodically
              const now = Date.now();
@@ -479,22 +587,22 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
         function addCornerScore(amount, countForReboot = true) {
              if (amount <= 0 || isNaN(amount)) return;
 
-             // --- NEW: Check if this is the first corner hit ---
+             // Check if this is the first corner hit (for unlocking elements)
              const wasFirstHit = !gameState.hasHitFirstCorner;
              if (wasFirstHit) {
                  gameState.hasHitFirstCorner = true;
-                 checkCornerVisibility(); // Make elements visible
+                 checkCornerVisibility(); // Make corner elements visible
                  console.log("First corner hit! Unlocking corner elements.");
                  saveGame(); // Save immediately after unlocking
              }
-             // --- END NEW ---
 
-             const adjustedAmount = Math.ceil(amount * gameState.syncCornerMultiplier);
-             gameState.cornerScore += adjustedAmount;
-             if (countForReboot) { gameState.totalCornersThisRun += adjustedAmount; }
+             // Note: Sync multiplier is now applied *before* calling this function
+             gameState.cornerScore += amount;
+             if (countForReboot) { gameState.totalCornersThisRun += amount; }
+
              updateCornerScoreDisplay();
-             checkRebootVisibility(); // Check if reboot should be shown
-             if (adjustedAmount > 0) updateCornerUpgradeButtons();
+             checkRebootVisibility(); // Check if reboot/fragment display should be shown
+             if (amount > 0) updateCornerUpgradeButtons(); // Update buttons if score changed
         }
         function addHitScore(amount) {
             if (amount <= 0 || isNaN(amount)) return;
@@ -505,25 +613,30 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
         function updateCornerScoreDisplay() { if (!cornerScoreElement) return; cornerScoreElement.textContent = `Corners: ${formatScore(Math.floor(gameState.cornerScore))}`; }
         function updateHitScoreDisplay() { if (!hitScoreElement) return; hitScoreElement.textContent = `Hits: ${formatScore(Math.floor(gameState.hitScore))}`; }
         function updateMetaScoreDisplay() { if (!metaScoreElement) return; metaScoreElement.textContent = `Fragments: ${formatScore(Math.floor(gameState.systemFragments))}`; }
-        function updateStreakDisplay() { if (!streakDisplayElement) return; if (gameState.hitStreakCounter > 1) { const streakMultiplier = 1 + gameState.hitStreakCounter * gameState.streakBonusPerHit; streakDisplayElement.textContent = `Streak: ${gameState.hitStreakCounter} (x${streakMultiplier.toFixed(2)})`; streakDisplayElement.classList.add('visible'); } else { streakDisplayElement.classList.remove('visible'); } }
+        function updateStreakDisplay() {
+             if (!streakDisplayElement) return;
+             // <<< MODIFIED: Include base streak bonus >>>
+             const currentStreakMult = 1 + gameState.metaStreakStartBonus + gameState.hitStreakCounter * gameState.streakBonusPerHit;
+             // Show streak only if multiplier > base or counter > 0
+             if ((gameState.hitStreakLevel > 0 && gameState.hitStreakCounter > 1) || gameState.metaStreakStartBonus > 0.001) {
+                 streakDisplayElement.textContent = `Streak: ${gameState.hitStreakCounter} (x${currentStreakMult.toFixed(2)})`;
+                 streakDisplayElement.classList.add('visible');
+             } else {
+                 streakDisplayElement.classList.remove('visible');
+                 // Optional: Show base x1.00 if no streak and no bonus?
+                 // streakDisplayElement.textContent = `Streak: 0 (x1.00)`;
+             }
+        }
 
-        // --- NEW: Visibility Control Functions ---
+        // --- Visibility Control Functions ---
         function checkCornerVisibility() {
             if (!cornerScoreElement || !cornerUpgradesOuterContainerElement) return;
             if (gameState.hasHitFirstCorner) {
-                cornerScoreElement.style.display = 'block'; // Or 'flex-grow: 1' etc. if needed
+                cornerScoreElement.style.display = 'block';
                 cornerUpgradesOuterContainerElement.style.display = 'block';
             } else {
                 cornerScoreElement.style.display = 'none';
                 cornerUpgradesOuterContainerElement.style.display = 'none';
-            }
-        }
-        function checkFragmentVisibility() {
-            if (!metaScoreRowElement) return;
-            if (gameState.hasEarnedFirstFragment) {
-                metaScoreRowElement.style.display = 'flex'; // Use flex as it's a .score-area
-            } else {
-                metaScoreRowElement.style.display = 'none';
             }
         }
 
@@ -531,16 +644,15 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
         function flashBox(element, isCorner = true, isPerfect = false) {
             if (!element) return;
             let flashClass = '';
+            // Determine the flash class based on priority: Perfect > Corner
             if (isPerfect) flashClass = 'perfect-hit-flash';
             else if (isCorner) flashClass = 'corner-hit-flash';
-            if(flashClass){
-                const originalColor = element.style.backgroundColor;
+
+            if (flashClass) {
                 element.classList.add(flashClass);
+                // Use a slightly longer timeout for perfect flash to match its brightness/importance
                 setTimeout(() => {
                     element.classList.remove(flashClass);
-                    if (!element.classList.contains('corner-hit-flash') && !element.classList.contains('perfect-hit-flash')) {
-                         element.style.backgroundColor = originalColor;
-                    }
                 }, isPerfect ? 200 : 120);
             }
         }
@@ -564,6 +676,7 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
                 if (cornerX < screenWidth / 2) dirX = Math.abs(dirX); else dirX = -Math.abs(dirX);
                 if (cornerY < screenHeight / 2) dirY = Math.abs(dirY); else dirY = -Math.abs(dirY);
                 const targetX = dirX * distance; const targetY = dirY * distance;
+                // Use double requestAnimationFrame for smoother start to transition
                 requestAnimationFrame(() => { requestAnimationFrame(() => {
                     particle.style.transform = `translate(${targetX}px, ${targetY}px) scale(${isPerfect ? 0.5 : 1})`;
                     particle.style.opacity = 0;
@@ -583,12 +696,38 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
         function showNotification(message, isImportant = false) {
             if (!notificationElement) return;
             notificationElement.textContent = message;
-            notificationElement.className = 'show';
+            notificationElement.className = 'show'; // Use className to reset classes
             if (isImportant) { notificationElement.classList.add('perfect'); }
             if (notificationElement.timer) clearTimeout(notificationElement.timer);
             notificationElement.timer = setTimeout(() => {
                  notificationElement.className = ''; notificationElement.timer = null;
              }, isImportant ? 3500 : 2500);
+        }
+        // --- Critical Hit Effect ---
+        function showCriticalHitEffect() {
+            if (!tvScreenElement) return;
+            const critText = document.createElement('div');
+            critText.classList.add('critical-hit-text');
+            critText.textContent = "CRITICAL";
+            tvScreenElement.appendChild(critText);
+
+            // Remove the element after the animation finishes (duration is 1.2s from CSS)
+            setTimeout(() => {
+                critText.remove();
+            }, 1200);
+        }
+        // --- NEW: Corner Hit Effect ---
+        function showCornerHitEffect() {
+             if (!tvScreenElement) return;
+             const cornerText = document.createElement('div');
+             cornerText.classList.add('corner-hit-text');
+             cornerText.textContent = "CORNER HIT";
+             tvScreenElement.appendChild(cornerText);
+
+             // Remove the element after the animation finishes (duration is 1.0s from CSS)
+             setTimeout(() => {
+                 cornerText.remove();
+             }, 1000);
         }
         function formatScore(value) {
             const V = Math.floor(value);
@@ -639,11 +778,17 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
                          const cost = calculateCost(upgrade.baseCost, level, upgrade.costFactor);
                          // Disable based on cost OR if it's a corner upgrade and corners aren't visible yet
                          btn.disabled = (Math.floor(currentScore) < cost) || (currencyType === 'corner' && !cornersVisible);
+                         // <<< Update description text on button in case derived stats changed (e.g., from meta) >>>
+                         btn.innerHTML = upgrade.getDescription(level, cost);
                      } else {
                           btn.disabled = true;
                           btn.innerHTML = `${upgrade.name}<br>(Max Lv ${level})`;
                           btn.onclick = null;
                      }
+                 } else if (btn && btn.textContent.includes('(Max Lv')) {
+                     // Also update maxed out button descriptions if necessary (unlikely but good practice)
+                     const level = upgrade.getLevel();
+                     btn.innerHTML = upgrade.getDescription(level, 0); // Pass 0 cost, it won't be shown anyway
                  }
              });
          }
@@ -694,8 +839,8 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
                 if (currencyType === 'corner') updateCornerScoreDisplay();
                 else if (currencyType === 'hit') updateHitScoreDisplay();
                 else if (currencyType === 'meta') updateMetaScoreDisplay();
-                renderSingleUpgrade(id, currencyType);
-                updateAllUpgradeButtons();
+                renderSingleUpgrade(id, currencyType); // Update just the bought button
+                updateAllUpgradeButtons(); // Update all buttons for affordability changes & potential description updates
                 saveGame();
             }
         }
@@ -716,20 +861,31 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
 
         // --- Reboot (Prestige) Logic ---
         function checkRebootVisibility() {
-            if (!rebootSectionElement) return;
-            // Show reboot section ONLY if the first corner has been hit AND (player has enough corners OR already has fragments)
-            if (gameState.hasHitFirstCorner && (gameState.totalCornersThisRun >= REBOOT_CORNER_THRESHOLD || gameState.systemFragments > 0)) {
-                rebootSectionElement.style.display = 'block';
-            } else {
-                rebootSectionElement.style.display = 'none'; // Ensure it hides if conditions aren't met
-            }
+             if (!rebootSectionElement || !metaScoreRowElement || !metaUpgradesOuterContainer) return;
 
-             // Show meta upgrades if player has earned first fragment OR has bought any meta upgrades
-             // Also check if first fragment has been earned for initial display
-             if (gameState.hasEarnedFirstFragment || gameState.metaSpeedLevel > 0 || gameState.metaFragmentGainLevel > 0 || gameState.metaStartCornerMultLevel > 0 || gameState.metaStartHitMultLevel > 0 ) {
-                metaUpgradesOuterContainer.style.display = 'block';
+             const showRebootCondition = gameState.hasHitFirstCorner && (gameState.totalCornersThisRun >= REBOOT_CORNER_THRESHOLD || gameState.systemFragments > 0);
+             // <<< MODIFIED: Also check new meta upgrade levels for visibility >>>
+             const showMetaUpgradesCondition = gameState.hasEarnedFirstFragment || gameState.metaSpeedLevel > 0 || gameState.metaFragmentGainLevel > 0 || gameState.metaStartCornerMultLevel > 0 || gameState.metaStartHitMultLevel > 0 || gameState.metaStreakStartLevel > 0 || gameState.metaCritPowerLevel > 0;
+
+             // Control Reboot Section visibility
+             if (showRebootCondition) {
+                 rebootSectionElement.style.display = 'block';
              } else {
-                 metaUpgradesOuterContainer.style.display = 'none'; // Keep hidden otherwise
+                 rebootSectionElement.style.display = 'none';
+             }
+
+             // Control Fragment Score Row visibility (Show if Reboot is shown OR if fragments have ever been earned)
+             if (showRebootCondition || gameState.hasEarnedFirstFragment) {
+                metaScoreRowElement.style.display = 'flex';
+             } else {
+                metaScoreRowElement.style.display = 'none';
+             }
+
+             // Control Meta Upgrades container visibility
+             if (showMetaUpgradesCondition) {
+                 metaUpgradesOuterContainer.style.display = 'block';
+             } else {
+                 metaUpgradesOuterContainer.style.display = 'none';
              }
         }
         function updateRebootPreview() {
@@ -752,14 +908,12 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
             console.log(`Rebooting! Gained ${fragmentsGained} fragments.`);
             showNotification(`System Rebooted! +${formatScore(fragmentsGained)} Fragments!`, true);
 
-            // --- NEW: Check if this is the first time earning fragments ---
+            // Check if this is the first time earning fragments
             const wasFirstFragmentEarn = !gameState.hasEarnedFirstFragment;
             if (wasFirstFragmentEarn) {
                 gameState.hasEarnedFirstFragment = true;
-                checkFragmentVisibility(); // Make fragment elements visible *before* resetting state
-                console.log("First fragments earned! Unlocking fragment display.");
+                console.log("First fragments earned! Unlocking fragment display permanently.");
             }
-            // --- END NEW ---
 
             // Store persistent values
             const currentFragments = gameState.systemFragments;
@@ -768,11 +922,14 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
                 metaStartHitMultLevel: gameState.metaStartHitMultLevel,
                 metaFragmentGainLevel: gameState.metaFragmentGainLevel,
                 metaSpeedLevel: gameState.metaSpeedLevel,
+                // <<< Add new meta levels >>>
+                metaStreakStartLevel: gameState.metaStreakStartLevel,
+                metaCritPowerLevel: gameState.metaCritPowerLevel,
             };
             // Store flags that should persist
             const persistentFlags = {
-                 hasHitFirstCorner: gameState.hasHitFirstCorner,
-                 hasEarnedFirstFragment: gameState.hasEarnedFirstFragment
+                 hasHitFirstCorner: gameState.hasHitFirstCorner, // Corner unlock persists
+                 hasEarnedFirstFragment: gameState.hasEarnedFirstFragment // Fragment unlock persists
             };
 
             // Reset game state (gets fresh defaults)
@@ -783,9 +940,8 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
             Object.assign(gameState, metaLevels); // Restore meta levels
             Object.assign(gameState, persistentFlags); // Restore flags
 
-            // Apply Overcharge visual - this should be reset on reboot unless explicitly persisted
+            // Remove Overcharge visual on reboot
             tvFrameElement?.classList.remove('overcharged');
-
 
             // Recalculate derived state based on restored meta levels
             recalculateDerivedState();
@@ -796,10 +952,9 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
             updateMetaScoreDisplay();
             updateStreakDisplay();
             renderAllUpgrades(); // Re-render all upgrades to reflect reset levels
-            updateAllUpgradeButtons();
-            checkRebootVisibility(); // Update visibility of reboot/meta sections
+            updateAllUpgradeButtons(); // Crucial to update button states and descriptions after recalc
+            checkRebootVisibility(); // Update visibility of reboot/meta/fragment sections
             checkCornerVisibility(); // Ensure corner elements remain visible if flag is true
-            checkFragmentVisibility(); // Ensure fragment elements remain visible if flag is true
             updateRebootPreview();
 
             // Reset visuals
@@ -828,10 +983,10 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
             if (savedData) {
                 try {
                     const loadedState = JSON.parse(savedData);
-                    // Basic validation - check core fields and new flags
+                    // Basic validation - check core fields and flags
                     if (typeof loadedState.cornerScore === 'number' && typeof loadedState.hitScore === 'number' &&
                         typeof loadedState.systemFragments === 'number' && Array.isArray(loadedState.boxes) &&
-                        typeof loadedState.hasHitFirstCorner === 'boolean' && typeof loadedState.hasEarnedFirstFragment === 'boolean') { // Check new flags
+                        typeof loadedState.hasHitFirstCorner === 'boolean' && typeof loadedState.hasEarnedFirstFragment === 'boolean') {
 
                         // Use deep merge, ensuring defaults exist for any missing loaded fields
                         gameState = deepMerge(createDefaultGameState(), loadedState);
@@ -875,18 +1030,20 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
                         }
                     } else {
                          // Only assign if the key exists in the default target OR is a standard expected key
-                         // This prevents loading unexpected fields from older saves if not careful
                          const expectedKeys = [
                             'cornerScore', 'hitScore', 'systemFragments', 'boxes', 'totalCornersThisRun',
                             'cornerMultiplierLevel', 'multiBoxLevel', 'syncBonusLevel', 'speedLevelHits', 'hitValueLevel',
                             'hitStreakLevel', 'ricochetLevel', 'perfectCornerLevel', 'criticalHitLevel', 'precisionTuningLevel',
-                            'momentumDriveLevel', 'screenOverchargeLevel', 'metaStartCornerMultLevel', 'metaStartHitMultLevel',
-                            'metaFragmentGainLevel', 'metaSpeedLevel', 'cornerHitValue', 'hitValue', 'baseSpeed', 'baseSpeedHits',
+                            'momentumDriveLevel', 'cornerEchoLevel', // Added cornerEchoLevel
+                            'metaStartCornerMultLevel', 'metaStartHitMultLevel',
+                            'metaFragmentGainLevel', 'metaSpeedLevel', 'metaStreakStartLevel', 'metaCritPowerLevel', // Added new meta levels
+                            'cornerHitValue', 'hitValue', 'baseSpeed', 'baseSpeedHits',
                             'syncCornerMultiplier', 'streakBonusPerHit', 'ricochetChance', 'ricochetBonusHits', 'perfectCornerChance',
-                            'perfectCornerMultiplier', 'criticalHitChance', 'criticalHitMultiplier', 'passiveCornerGainPerSecond',
-                            'metaFragmentMultiplier', 'metaSpeedBoost', 'hitStreakCounter', 'lastHitTime',
-                            // Add the new flags here
-                            'hasHitFirstCorner', 'hasEarnedFirstFragment'
+                            'perfectCornerMultiplier', 'criticalHitChance', 'criticalHitMultiplier',
+                            'cornerEchoBonusPercent', // Added derived state
+                            'metaFragmentMultiplier', 'metaSpeedBoost', 'metaStreakStartBonus', 'metaCritPowerBonus', // Added derived meta states
+                            'hitStreakCounter', 'lastHitTime',
+                            'hasHitFirstCorner', 'hasEarnedFirstFragment' // Include flags
                          ];
                          if (key in target || expectedKeys.includes(key)) {
                             Object.assign(output, { [key]: source[key] });
@@ -909,21 +1066,23 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
                  cornerMultiplierLevel: 0, multiBoxLevel: 0, syncBonusLevel: 0,
                  speedLevelHits: 0, hitValueLevel: 0, hitStreakLevel: 0, ricochetLevel: 0,
                  perfectCornerLevel: 0, criticalHitLevel: 0,
-                 precisionTuningLevel: 0, momentumDriveLevel: 0, screenOverchargeLevel: 0,
+                 precisionTuningLevel: 0, momentumDriveLevel: 0, cornerEchoLevel: 0, // Added new corner upgrade level
                  // Meta Upgrade Levels
                  metaStartCornerMultLevel: 0, metaStartHitMultLevel: 0, metaFragmentGainLevel: 0, metaSpeedLevel: 0,
+                 metaStreakStartLevel: 0, metaCritPowerLevel: 0, // Added new meta upgrade levels
                  // Derived Stats (will be calculated, but good to have defaults)
                  cornerHitValue: 1, hitValue: 1, baseSpeed: 1, baseSpeedHits: 1,
                  syncCornerMultiplier: 1, streakBonusPerHit: 0,
                  ricochetChance: 0, ricochetBonusHits: 0,
                  perfectCornerChance: 0, perfectCornerMultiplier: 1,
                  criticalHitChance: 0, criticalHitMultiplier: 1,
-                 passiveCornerGainPerSecond: 0,
+                 cornerEchoBonusPercent: 0, // Added derived state
                  // Meta Derived Stats
                  metaFragmentMultiplier: 1, metaSpeedBoost: 1,
+                 metaStreakStartBonus: 0, metaCritPowerBonus: 0, // Added derived meta states
                  // Timers/Counters
                  hitStreakCounter: 0, lastHitTime: 0,
-                 // NEW Visibility Flags
+                 // Visibility Flags
                  hasHitFirstCorner: false,
                  hasEarnedFirstFragment: false,
              };
@@ -937,7 +1096,7 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
             return Math.max(1, Math.floor((baseValue + metaBoost) * (1 + momentumBoost)));
         }
          function deriveHitValue(level) {
-             const baseValue = 1 + Math.ceil(level / 2);
+             const baseValue = 1 + level;
              const metaBoost = deriveMetaStartHitMult(gameState.metaStartHitMultLevel);
              const precisionBoost = derivePrecisionHitBoost(gameState.precisionTuningLevel);
              return Math.max(1, Math.floor((baseValue + metaBoost) * (1 + precisionBoost)));
@@ -949,8 +1108,10 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
          }
          function deriveCriticalHitStats(level) { // Returns [chance %, multiplier]
               const chance = Math.min(30, level * 1.0); // Max 30% chance
-              const multiplier = 2 + Math.floor(level / 2); // Starts at x2, increases
-              return [chance, multiplier];
+              const baseMultiplier = 2 + Math.floor(level / 2); // Starts at x2, increases
+              // <<< MODIFIED: Add meta crit power bonus >>>
+              const finalMultiplier = baseMultiplier + gameState.metaCritPowerBonus;
+              return [chance, finalMultiplier];
          }
          function derivePrecisionHitBoost(level) { return level * 0.02; } // +2% base hit value per level
          function deriveMomentumCornerBoost(level) { return level * 0.015; } // +1.5% base corner value per level
@@ -962,15 +1123,28 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
              const bonus = 1 + Math.floor(level / 2);
              return [chance, bonus];
          }
-         function derivePassiveCornerGain(level) { return level > 0 ? 0.1 : 0; } // 0.1 per second if level 1
+         // <<< NEW: Corner Echo Derivation >>>
+         function deriveCornerEchoBonus(level) { return level * 0.005; } // +0.5% of hits per level
+
          // Meta Derivations
          function deriveMetaStartCornerMult(level) { return level * 2; } // +2 base corner value per level
          function deriveMetaStartHitMult(level) { return level * 1; } // +1 base hit value per level
          function deriveMetaFragmentMult(level) { return 1 + level * 0.1; } // +10% fragments per level
          function deriveMetaSpeedBoost(level) { return 1 + level * 0.05; } // +5% speed per level
+         // <<< NEW: Meta Streak Start Derivation >>>
+         function deriveMetaStreakStartBonus(level) { return level * 0.02; } // +0.02 base multiplier per level
+         // <<< NEW: Meta Crit Power Derivation >>>
+         function deriveMetaCritPowerBonus(level) { return level * 0.25; } // +0.25x crit multiplier per level
 
         function recalculateDerivedState() { // Central place to update calculated stats
              if (!gameState) return;
+             // Calculate Meta bonuses first as they might affect others
+             gameState.metaFragmentMultiplier = deriveMetaFragmentMult(gameState.metaFragmentGainLevel);
+             gameState.metaSpeedBoost = deriveMetaSpeedBoost(gameState.metaSpeedLevel);
+             gameState.metaStreakStartBonus = deriveMetaStreakStartBonus(gameState.metaStreakStartLevel);
+             gameState.metaCritPowerBonus = deriveMetaCritPowerBonus(gameState.metaCritPowerLevel);
+
+             // Regular derived stats
              gameState.cornerHitValue = deriveCornerValue(gameState.cornerMultiplierLevel);
              gameState.hitValue = deriveHitValue(gameState.hitValueLevel);
              [gameState.perfectCornerChance, gameState.perfectCornerMultiplier] = derivePerfectCornerStats(gameState.perfectCornerLevel);
@@ -982,11 +1156,15 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
              gameState.streakBonusPerHit = deriveStreakBonusPerHit(gameState.hitStreakLevel);
              [gameState.ricochetChance, gameState.ricochetBonusHits] = deriveRicochetStats(gameState.ricochetLevel);
              gameState.ricochetChance /= 100; // Convert % to decimal
-             gameState.passiveCornerGainPerSecond = derivePassiveCornerGain(gameState.screenOverchargeLevel);
-             // Meta derived stats
-             gameState.metaFragmentMultiplier = deriveMetaFragmentMult(gameState.metaFragmentGainLevel);
-             gameState.metaSpeedBoost = deriveMetaSpeedBoost(gameState.metaSpeedLevel);
+             gameState.cornerEchoBonusPercent = deriveCornerEchoBonus(gameState.cornerEchoLevel);
+
+             // Recalculate total speed (now depends on metaSpeedBoost)
+             gameState.baseSpeed = 1; // Reset base speed (if it's not meant to be upgradeable)
+
              // console.log("Recalculated derived state."); // Optional debug log
+
+             // Update UI elements that depend on derived stats immediately
+             updateStreakDisplay(); // Streak display depends on meta bonus now
         }
 
         function recreateBoxElements() { // Rebuilds DOM elements for boxes after load
@@ -1027,7 +1205,7 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
                  screenHeight = rect.height;
 
                  // --- Calculate Dynamic Logo Size ---
-                 dynamicBoxHeight = Math.max(15, screenHeight * LOGO_HEIGHT_SCREEN_RATIO); // Increased min height slightly
+                 dynamicBoxHeight = Math.max(15, screenHeight * LOGO_HEIGHT_SCREEN_RATIO);
                  dynamicBoxWidth = dynamicBoxHeight * BOX_ASPECT_RATIO;
 
                  // Update CSS variables
@@ -1054,35 +1232,31 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
 
         function init() {
              // Check essential elements exist
-             if (!tvScreenElement || !cornerScoreElement || !hitScoreElement || !metaScoreElement || !streakDisplayElement || !cornerUpgradesContainer || !hitUpgradesContainer || !metaUpgradesContainer || !notificationElement || !rebootSectionElement || !rebootButtonElement || !metaUpgradesOuterContainer || !metaScoreRowElement || !cornerUpgradesOuterContainerElement) { // Added new elements
+             if (!tvScreenElement || !cornerScoreElement || !hitScoreElement || !metaScoreElement || !streakDisplayElement || !cornerUpgradesContainer || !hitUpgradesContainer || !metaUpgradesContainer || !notificationElement || !rebootSectionElement || !rebootButtonElement || !metaUpgradesOuterContainer || !metaScoreRowElement || !cornerUpgradesOuterContainerElement) {
                  console.error("Essential DOM elements are missing. Cannot initialize.");
-                 document.body.innerHTML = "<p style='color:red; text-align:center; padding: 20px;'>Error: Could not find essential game elements. Please check the HTML structure (including new IDs: meta-score-row, corner-upgrades-outer-container).</p>";
+                 document.body.innerHTML = "<p style='color:red; text-align:center; padding: 20px;'>Error: Could not find essential game elements. Please check the HTML structure.</p>";
                  return;
              }
              console.log("Initializing game", SAVE_VERSION, "...");
 
-             const isNewGame = loadGame(); // Load or initialize gameState
+             const isNewGame = loadGame(); // Load or initialize gameState (calls recalculateDerivedState)
 
              // Initial UI setup based on loaded/new state
              updateCornerScoreDisplay();
              updateHitScoreDisplay();
              updateMetaScoreDisplay();
-             updateStreakDisplay();
+             // updateStreakDisplay(); // Already called by recalculateDerivedState inside loadGame/createDefault
              renderAllUpgrades();
 
-             // --- NEW: Set initial visibility based on loaded flags ---
+             // Set initial visibility based on loaded flags
              checkCornerVisibility();
-             checkFragmentVisibility();
-             // --- END NEW ---
+             checkRebootVisibility(); // Handles Reboot, Fragment Score Row, and Meta Upgrades Container
 
-             updateAllUpgradeButtons(); // Set initial button states (now considers visibility)
-             checkRebootVisibility(); // Show/hide Reboot/Meta sections (now considers visibility flags)
-             updateRebootPreview();
+             updateAllUpgradeButtons(); // Set initial button states (now considers visibility and recalculated stats)
+             updateRebootPreview(); // Update fragment gain preview
 
-              // Apply Overcharge visual if owned (assuming it resets on reboot unless persisted)
-             if (gameState.screenOverchargeLevel > 0) {
-                tvFrameElement?.classList.add('overcharged');
-             }
+             // Remove overcharge class if loaded state doesn't have it (it's not persisted)
+             // tvFrameElement?.classList.remove('overcharged'); // Done in executeReboot and not applied on load
 
              // Handle resize *before* creating/recreating boxes to get initial size
              handleResize();
@@ -1096,15 +1270,12 @@ html, body { margin: 0; padding: 0; width: 100%; background-color: #111; font-fa
              if (gameState.boxes.length === 0) {
                 // Use a small delay to ensure layout/size calculation is complete
                 setTimeout(() => {
-                    // Recalculate screen size *inside* timeout just in case resize finished late
                     const currentRect = tvScreenElement?.getBoundingClientRect();
                     if(currentRect && currentRect.width > 0 && currentRect.height > 0) {
                        if (Math.abs(screenWidth - currentRect.width) > 1 || Math.abs(screenHeight - currentRect.height) > 1) {
                             handleResize(); // Call resize again if needed
                        }
                     }
-
-                    // Check if ready and still no boxes
                     if (screenWidth > 0 && screenHeight > 0 && gameState.boxes.length === 0) {
                         console.log("Adding initial logo (deferred).");
                         addBox(true); // Pass true for center spawn
