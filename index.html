@@ -1,22 +1,18 @@
-<!DOCTYPE html>
+
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>DVD Video Idle</title>
     <style>
-        /* Import Futura font if needed (example using Google Fonts - replace if hosted elsewhere) */
-        /* @import url('https://fonts.googleapis.com/css2?family=Futura:wght@500&display=swap'); */
-        /* Note: Futura isn't freely available on Google Fonts. Use a suitable alternative or ensure it's licensed/hosted. */
-        /* Using common fallbacks for now. */
-
         :root {
             --tv-bg: #282828;
             --screen-bg: #111;
             --text-color: #eee;
             --border-color: #444;
             --highlight-color-hits: #0df; /* Teal */
-            --highlight-color-corners: #0f0;
+            --highlight-color-corners: #0f0; /* Still used for text color */
             --highlight-color-wall: #0df;
             --meta-color: #f0f; /* Pink */
             --collision-color: #f90;
@@ -57,15 +53,12 @@
             opacity: 1;
         }
 
-        /* Container for the masked logo */
         #loading-screen .loading-logo-container {
             width: 50%;
             max-width: 350px;
-            aspect-ratio: 960 / 500; /* Match the source image aspect ratio */
+            aspect-ratio: 960 / 500;
             margin-bottom: 20px;
-            /* Set the desired background color (Teal) */
             background-color: var(--highlight-color-hits);
-            /* Apply the mask */
             mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png');
             -webkit-mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png');
             mask-size: contain;
@@ -75,21 +68,18 @@
             mask-position: center;
             -webkit-mask-position: center;
         }
-         /* Hide the actual img tag content within the container */
         #loading-screen .loading-logo-container img {
-            opacity: 0; /* Hide the original image content */
-            width: 100%; /* Make it fill the container for sizing */
+            opacity: 0;
+            width: 100%;
             height: 100%;
             display: block;
         }
 
         #loading-screen .loading-text {
-             /* START CHANGE: Font Change */
-            font-family: 'Futura Medium', Futura, 'Century Gothic', AppleGothic, sans-serif; /* Use Futura Medium with fallbacks */
-             /* END CHANGE */
+            font-family: 'Futura Medium', Futura, 'Century Gothic', AppleGothic, sans-serif;
             font-size: clamp(3rem, 10vw, 5rem);
-            color: var(--meta-color); /* Pink */
-            font-weight: 500; /* Futura Medium weight is typically 500 */
+            color: var(--meta-color);
+            font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             margin-top: 0;
@@ -99,7 +89,7 @@
             opacity: 0;
             pointer-events: none;
         }
-        .hidden { /* Utility class */
+        .hidden {
             display: none !important;
         }
         /* --- End Loading Screen Styles --- */
@@ -127,10 +117,6 @@
             color: var(--highlight-color-hits);
             text-shadow: 0 0 5px var(--highlight-color-hits);
         }
-        #total-corner-hits-display {
-            color: var(--highlight-color-corners);
-            text-shadow: 0 0 5px var(--highlight-color-corners);
-        }
 
         #tvs-display-area {
             display: flex; flex-wrap: wrap; justify-content: center;
@@ -139,7 +125,7 @@
             width: 100%; max-width: 1400px;
             padding: 15px; box-sizing: border-box;
             margin-top: 65px;
-            max-height: calc(100vh - 90px);
+            max-height: calc(100vh - 110px);
             overflow-y: auto;
             overflow-x: hidden;
         }
@@ -182,7 +168,7 @@
         .tv-screen::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.20) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.015), rgba(0, 0, 255, 0.04)); background-size: 100% 2px, 3px 100%; z-index: 2; pointer-events: none; animation: crt-scanline 100s linear infinite; }
         @keyframes crt-scanline { 0% { background-position: 0 0; } 100% { background-position: 0 100%; } }
 
-        .box { position: absolute; background-color: #ffffff; /* Color set dynamically */ mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png'); -webkit-mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png'); mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-position: center; -webkit-mask-position: center; z-index: 1; filter: brightness(1.05); will-change: transform; }
+        .box { position: absolute; background-color: #ffffff; mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png'); -webkit-mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png'); mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-position: center; -webkit-mask-position: center; z-index: 1; filter: brightness(1.05); will-change: transform; }
 
         .spark-particle { position: absolute; width: 2px; height: 2px; border-radius: 50%; pointer-events: none; z-index: 10; opacity: 1; background-color: #fff; transition: transform 0.6s cubic-bezier(0.1, 0.7, 0.9, 1), opacity 0.6s ease-out; box-shadow: 0 0 3px #fff; }
 
@@ -228,21 +214,59 @@
         .buy-amount-button:hover { background-color: var(--button-hover); }
         .buy-amount-button.active { background-color: var(--button-active); border-color: #999; font-weight: bold; }
         .upgrades-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 10px; width: 100%; margin-bottom: 15px;}
-        .upgrade-button { background-color: var(--button-bg); color: var(--accent-color); border: 1px solid var(--border-color); padding: 10px 6px; border-radius: 6px; cursor: pointer; font-size: clamp(0.7rem, 2vw, 0.85rem); transition: background-color 0.2s, transform 0.1s; text-align: center; min-height: 85px; /* Increased min-height */ display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+        .upgrade-button { background-color: var(--button-bg); color: var(--accent-color); border: 1px solid var(--border-color); padding: 10px 6px; border-radius: 6px; cursor: pointer; font-size: clamp(0.7rem, 2vw, 0.85rem); transition: background-color 0.2s, transform 0.1s; text-align: center; min-height: 85px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
         .upgrade-button:hover:not(:disabled) { background-color: var(--button-hover); }
         .upgrade-button:active:not(:disabled) { transform: scale(0.96); }
         .upgrade-button:disabled { background-color: #333; color: var(--disabled-color); cursor: not-allowed; opacity: 0.6; }
         .upgrade-description { flex-grow: 1; margin-bottom: 4px; }
-        .upgrade-description strong { font-size: 1.1em; display: block; margin-bottom: 3px; line-height: 1.1; } /* Style the title */
+        .upgrade-description strong { font-size: 1.1em; display: block; margin-bottom: 3px; line-height: 1.1; }
         .upgrade-cost { font-size: 0.9em; font-weight: bold; margin-top: auto; }
         .upgrade-cost.hit { color: var(--highlight-color-hits); }
         .upgrade-cost.meta { color: var(--meta-color); }
-        /* Ensure cost is visible even when disabled, just dimmer */
         .upgrade-button:disabled .upgrade-cost { color: var(--disabled-color); opacity: 0.8; }
         #modal-reboot-section-container { width: 100%; }
         #reboot-section { border-top: 1px dashed var(--meta-color); margin-top: 15px; padding-top: 15px; text-align: center; }
         #reboot-info { margin-bottom: 8px; font-size: 0.85em; color: #ccc; }
         #reboot-gain-preview { margin-bottom: 12px; font-weight: bold; font-size: 0.9em; }
+
+        /* --- START: Progress Bar Styles --- */
+        #reboot-progress-container {
+            width: 85%;
+            max-width: 300px;
+            margin: 10px auto 15px auto; /* Centered, with margin */
+            background-color: #383838;
+            border-radius: 6px;
+            height: 22px;
+            position: relative;
+            overflow: hidden; /* Clip the inner bar */
+            border: 1px solid #555;
+        }
+        #reboot-progress-bar {
+            height: 100%;
+            width: 0%; /* Updated by JS */
+            background-color: var(--meta-color); /* Use meta color */
+            border-radius: 5px; /* Match container, slightly smaller if needed */
+            transition: width 0.3s ease-out;
+            position: relative; /* For text positioning context */
+        }
+        #reboot-progress-text {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.6);
+            white-space: nowrap; /* Prevent wrapping */
+            z-index: 1; /* Ensure text is above the bar fill */
+            padding: 0 5px; /* Prevent text touching edges */
+            box-sizing: border-box;
+        }
+        /* --- END: Progress Bar Styles --- */
+
         #reboot-button { background-color: var(--meta-color); color: #fff; border: 1px solid #505; padding: 8px 18px; border-radius: 5px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: background-color 0.2s, transform 0.1s; }
         #reboot-button:hover:not(:disabled) { background-color: #ff40ff; }
         #reboot-button:active:not(:disabled) { transform: scale(0.96); }
@@ -262,6 +286,24 @@
         @keyframes cornerHitAnim { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(0.95); } 100% { opacity: 0; transform: translate(-50%, -180%) scale(0.7); } }
 
         svg { position:absolute; height: 0; width: 0; }
+
+         /* Dev Panel Specific Styles */
+        #dev-panel label {
+            color: #ccc;
+            font-size: 0.8rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+        #dev-panel input[type="number"] {
+            width: 60px;
+            padding: 3px;
+            background-color: #222;
+            border: 1px solid #555;
+            color: #eee;
+            font-size: 0.9rem;
+            border-radius: 3px;
+             margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -290,7 +332,6 @@
 <div id="game-container">
     <div id="top-info-bar">
         <div id="total-hits-display" class="top-info-display">Hits: 0</div>
-        <!-- <div id="total-corner-hits-display" class="top-info-display">Corners: 0</div> -->
     </div>
     <div id="tvs-display-area"></div>
     <button id="meta-menu-button" aria-label="Meta Upgrades & Reboot">✵</button>
@@ -313,24 +354,46 @@
     <div id="reboot-section">
         <div id="reboot-info">Reboot to gain Static Charges based on total Hits this session.</div>
         <div id="reboot-gain-preview">Gain ~0 Static Charges</div>
+        <!-- START: Progress Bar HTML Structure -->
+        <div id="reboot-progress-container">
+          <span id="reboot-progress-text">Calculating...</span>
+            <div id="reboot-progress-bar">
+            </div>
+        </div>
+        <!-- END: Progress Bar HTML Structure -->
         <button id="reboot-button" disabled>Reboot System</button>
     </div>
 </div>
 
+
 <div id="notification"></div>
+
+<!-- DEV Tools -->
+<button id="dev-button" style="position: fixed; bottom: 15px; left: 15px; z-index: 950; padding: 8px 12px; background-color: #500; color: white; border: 1px solid #a00; border-radius: 5px; cursor: pointer; font-family: monospace; font-size: 0.9rem;">
+    DEV
+</button>
+<div id="dev-panel" class="hidden" style="position: fixed; bottom: 55px; left: 15px; z-index: 951; background-color: rgba(40, 0, 0, 0.85); border: 1px solid #a00; border-radius: 5px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+    <button id="dev-simulate-corner" style="background-color: #333; color: #eee; border: 1px solid #666; padding: 5px; cursor: pointer;">Simulate Corner Hit</button>
+    <div>
+        <label for="dev-speed-input">Score Factor:</label>
+        <input type="number" id="dev-speed-input" name="dev-speed-input" min="0.1" step="0.1" value="1.0">
+    </div>
+    <button id="dev-hard-reset" style="background-color: #800; color: white; border: 1px solid #f00; padding: 5px; cursor: pointer; margin-top: 5px;">Hard Reset Game</button>
+</div>
+<!-- End DEV Tools -->
 
 <script>
     (function() {
 
-        // --- Game Constants ---
-        const DEV_SPEED_FACTOR = 1; // Set back to 1 for normal gameplay
+        // --- Game Constants & Variables ---
+        let devSpeedFactor = 1;
         const DVD_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png';
         const TV_BACKGROUND_URL = 'https://00s.myretrotvs.com/img/tvbackclean.webp';
         const BASE_LOGO_HEIGHT_SCREEN_RATIO = 0.14;
         const BASE_BOX_ASPECT_RATIO = 1.6;
         const BASE_SPEED_CONSTANT = 1.0;
         const MAX_BOXES_PER_TV = 15;
-        const SAVE_VERSION = 'v0.3'; // Keep version consistent if state structure didn't break save compatibility
+        const SAVE_VERSION = 'v0.4';
         const SAVE_KEY = `dvdVideoIdleSave_${SAVE_VERSION}`;
         const TICK_RATE_MS = 16;
         const COLLISION_ENERGY_LOSS = 0.96;
@@ -339,18 +402,20 @@
         const TV_COST_SCALING_FACTOR = 1.8;
         const MAX_BULK_BUY_CHECK = 10000;
         const IDLE_HITS_PER_SEC_PER_BOX_BASE_FACTOR = 0.6;
-        const MIN_LOADING_TIME_MS = 2000;
-        const MIN_OFFLINE_TIME_MS = 60 * 1000; // 1 minute minimum for offline calc
-        const MAX_OFFLINE_TIME_MS = 14 * 24 * 60 * 60 * 1000; // 14 days maximum for offline calc
+        const MIN_LOADING_TIME_MS = 1500; // Reduced slightly
+        const MIN_OFFLINE_TIME_MS = 60 * 1000;
+        const MAX_OFFLINE_TIME_MS = 14 * 24 * 60 * 60 * 1000;
         const CORNERS_SUCK_TIME_SCALE_FACTOR = 6000;
         const CORNERS_SUCK_LEVEL_SCALE_FACTOR = 0.01;
         const CORNERS_SUCK_MAX_MULTIPLIER = 3.0;
+        const REBOOT_MIN_HITS_FOR_FIRST_CHARGE = 5000; // Explicit constant
+        const FIND_THRESHOLD_MAX_ITERATIONS = 1000; // Safety limit for search
+        const FIND_THRESHOLD_MAX_HITS = 1e24; // Practical upper limit for search
 
 
         // --- DOM Element Selection ---
         const loadingScreen = document.getElementById('loading-screen');
         const totalHitsDisplay = document.getElementById('total-hits-display');
-        const totalCornerHitsDisplay = document.getElementById('total-corner-hits-display');
         const tvsDisplayArea = document.getElementById('tvs-display-area');
         const notificationElement = document.getElementById('notification');
         const upgradeModal = document.getElementById('upgrade-modal');
@@ -373,6 +438,7 @@
         let boxCollisionTimers = {};
         let selectedBuyAmount = 1;
         let timeHidden = null;
+        let hitsThresholdCache = {}; // Cache for findHitsThreshold results
 
         // --- Utility Functions ---
         const calculateCost = (baseCost, level, factor = 1.5, tvIndex = -1) => { let cost = baseCost * Math.pow(factor, level); if (tvIndex >= 0 && tvIndex > 0) { cost *= Math.pow(TV_COST_SCALING_FACTOR, tvIndex); } return Math.max(1, Math.floor(cost)); };
@@ -383,12 +449,12 @@
         // --- Image Preloading ---
         function preloadImages(urls) {
             const promises = urls.map(url => {
-                return new Promise((resolve) => { // Always resolve
+                return new Promise((resolve) => {
                     const img = new Image();
                     img.onload = resolve;
                     img.onerror = (err) => {
                         console.error(`Failed to load image: ${url}`, err);
-                        resolve(); // Resolve even on error
+                        resolve();
                     };
                     img.src = url;
                 });
@@ -438,7 +504,7 @@
                  console.warn("Screen dimensions not ready for TV", tvState.id, "retrying box creation soon.");
                  if(!boxData.element){
                      setTimeout(() => {
-                        if(globalState && globalState.tvStates[tvState.index]) { // Check if tvState still exists
+                        if(globalState && globalState.tvStates[tvState.index]) {
                             const currentTvState = globalState.tvStates[tvState.index];
                             const reBox = currentTvState.boxes.find(b => b.id === boxData.id && !b.element);
                             if (reBox && !reBox.element) {
@@ -654,11 +720,11 @@
              });
 
             updateTotalHitsDisplay();
-            updateTotalCornerHitsDisplay();
             updateAllTvGlows();
             checkMetaButtonVisibility();
 
             if (upgradeModal.classList.contains('show')) {
+                hitsThresholdCache = {}; // Clear threshold cache at the start of the update relevant to the modal
                 if (selectedTvIndex !== -1) {
                     const tvState = globalState.tvStates[selectedTvIndex];
                     if (tvState) updateModalTvStats(tvState);
@@ -666,7 +732,7 @@
                 } else {
                     modalTvStats.textContent = `Static Charges: ${formatScore(globalState.systemStaticCharges)}`;
                     updateMetaUpgradeButtonsIfVisible();
-                    updateRebootPreviewIfVisible();
+                    updateRebootPreviewIfVisible(); // This now includes progress bar update
                 }
             }
 
@@ -697,7 +763,7 @@
                      box.element.style.transform = `translate(${box.x}px, ${box.y}px)`;
                   }
 
-                if (isNaN(box.vx) || isNaN(box.vy)) { box.vx = (Math.random()-0.5)*currentSpeed*0.5; box.vy = (Math.random()-0.5)*currentSpeed*0.5; }; // Reset velocity if invalid
+                if (isNaN(box.vx) || isNaN(box.vy)) { box.vx = (Math.random()-0.5)*currentSpeed*0.5; box.vy = (Math.random()-0.5)*currentSpeed*0.5; };
                 let boxVX = box.vx; let boxVY = box.vy;
                 const speedMagnitude = Math.sqrt(boxVX**2 + boxVY**2);
                 if (speedMagnitude > 0.01 && Math.abs(speedMagnitude - currentSpeed) > 0.1 * currentSpeed) {
@@ -708,8 +774,8 @@
                     boxVX=Math.cos(a)*currentSpeed*0.5; boxVY=Math.sin(a)*currentSpeed*0.5;
                 }
 
-                let deltaX = boxVX*deltaTime*60;
-                let deltaY = boxVY*deltaTime*60;
+                let deltaX = boxVX * deltaTime * 60;
+                let deltaY = boxVY * deltaTime * 60;
                 deltaX = Math.max(-effectiveBoxWidth*0.8,Math.min(effectiveBoxWidth*0.8,deltaX));
                 deltaY = Math.max(-effectiveBoxHeight*0.8,Math.min(effectiveBoxHeight*0.8,deltaY));
                 box.x += deltaX;
@@ -731,7 +797,6 @@
                     const isCorner = (isNearLeft || isNearRight) && (isNearTop || isNearBottom);
 
                     if (isCorner && hitX && hitY) {
-                        globalState.totalCornerHits++;
                         tvState.lastCornerHitTimestamp = Date.now();
 
                         let cornerX = isNearLeft ? 0 : screenWidth;
@@ -740,10 +805,7 @@
                         if (isNearLeft) boxVX=Math.abs(boxVX)*escapeFactor; else boxVX=-Math.abs(boxVX)*escapeFactor;
                         if (isNearTop) boxVY=Math.abs(boxVY)*escapeFactor; else boxVY=-Math.abs(boxVY)*escapeFactor;
 
-                        const baseBonus = tvState.cornerHitBaseBonus;
-                        const percentBonus = globalState.lifetimeSessionHits * tvState.cornerHitPercentBonus;
-                        const totalCornerBonus = (baseBonus + percentBonus);
-                        const finalCornerBonus = Math.ceil(totalCornerBonus * globalState.synergyBonus * DEV_SPEED_FACTOR);
+                        const finalCornerBonus = Math.ceil(tvState.cornerHitBaseBonus * tvState.cornerHitMultiplier * globalState.synergyBonus * devSpeedFactor);
                         addTvHitScore(finalCornerBonus);
 
                         cornerHitData.push({ x: cornerX, y: cornerY, boxId: box.id, bonusAmount: finalCornerBonus });
@@ -762,8 +824,7 @@
                             cornersSuckMultiplier = 1 + bonusRatio;
                             baseWallHitAmount *= cornersSuckMultiplier;
                         }
-
-                        const finalWallHitAmount = Math.ceil(baseWallHitAmount * globalState.synergyBonus * DEV_SPEED_FACTOR);
+                        const finalWallHitAmount = Math.ceil(baseWallHitAmount * globalState.synergyBonus * devSpeedFactor);
                         addTvHitScore(finalWallHitAmount);
 
                         let popupX = box.x + effectiveBoxWidth / 2;
@@ -829,7 +890,7 @@
             }
             if (boxCollisionsThisFrame.length > 0) {
                 let collisionValue = tvState.boxCollisionValue;
-                let finalCollisionValue = Math.ceil(collisionValue * globalState.synergyBonus * DEV_SPEED_FACTOR);
+                let finalCollisionValue = Math.ceil(collisionValue * globalState.synergyBonus * devSpeedFactor);
                 let totalCollisionBonus = boxCollisionsThisFrame.length * finalCollisionValue;
                 addTvHitScore(totalCollisionBonus);
                 boxCollisionsThisFrame.forEach(hit => {
@@ -850,12 +911,12 @@
             if (finalAmount <= 0 || isNaN(finalAmount)) return;
             const effectiveGain = Math.ceil(finalAmount);
             if (effectiveGain <= 0) return;
+
             globalState.totalSessionHits += effectiveGain;
             globalState.lifetimeSessionHits += effectiveGain;
         }
         function updateModalTvStats(tvState) { if (!modalTvStats || !tvState) return; const currentMaxBoxes = globalState.maxBoxesPerTv; modalTvStats.textContent = `TV #${tvState.id} | Logos: ${tvState.boxes.length}/${currentMaxBoxes}`; }
         function updateTotalHitsDisplay() { if (totalHitsDisplay) { totalHitsDisplay.textContent = `Hits: ${formatScore(globalState.totalSessionHits)}`; } }
-        function updateTotalCornerHitsDisplay() { if (totalCornerHitsDisplay) { totalCornerHitsDisplay.textContent = `Corners: ${formatScore(globalState.totalCornerHits)}`; } }
 
         // --- Effects & Feedback ---
         function createSparkParticles(tvState, cornerX, cornerY) { if (!tvState.elements || !tvState.elements.screen) return; const screenElement = tvState.elements.screen; const particleCount = 12; const particleLifespan = 650; const particleSpread = tvState.screenWidth * 0.18; for (let i = 0; i < particleCount; i++) { const p = document.createElement('div'); p.classList.add('spark-particle'); p.style.left = `${cornerX}px`; p.style.top = `${cornerY}px`; screenElement.appendChild(p); const ang = Math.random()*Math.PI*2; const dist = Math.random()*particleSpread; let dX=Math.cos(ang); let dY=Math.sin(ang); if(cornerX<tvState.screenWidth/2) dX=Math.abs(dX); else dX=-Math.abs(dX); if(cornerY<tvState.screenHeight/2) dY=Math.abs(dY); else dY=-Math.abs(dY); const tX=dX*dist; const tY=dY*dist; requestAnimationFrame(()=>{p.style.transform=`translate(${tX}px, ${tY}px) scale(0.5)`; p.style.opacity=0; }); setTimeout(()=>{ p.remove(); }, particleLifespan); } }
@@ -899,27 +960,23 @@
 
         // --- Upgrade Definitions ---
         const tvUpgrades = [
-             // --- START: TV Upgrade Description Changes ---
              { id: 'hitValue', name: 'Hit Value', baseCost: 10, costFactor: 1.45, getLevel: (tv) => tv.upgrades.hitValue, applyEffect: (tv) => { tv.upgrades.hitValue++; },
                getDescription: (tv, l) => `<strong>More Hits Per Hit</strong><br>Lv ${l}: +Base Hit Value` },
              { id: 'speed', name: 'Speed', baseCost: 40, costFactor: 1.65, maxLevel: 25, getLevel: (tv) => tv.upgrades.speed, applyEffect: (tv) => { tv.upgrades.speed++; },
                getDescription: (tv, l, maxed) => `<strong>Gotta Go Fast</strong><br>${maxed ? `Max Speed (Lv ${l})` : `Lv ${l}: +Logo Speed`}` },
-             { id: 'cornerBonusFlat', name: 'Corner Flat Bonus', baseCost: 60, costFactor: 1.75, getLevel: (tv) => tv.upgrades.cornerBonusFlat, applyEffect: (tv) => { tv.upgrades.cornerBonusFlat++; },
-               getDescription: (tv, l) => `<strong>Corners Rule</strong><br>Lv ${l}: +Flat Corner Bonus` },
-             { id: 'cornerBonusPercent', name: 'Corner % Bonus', baseCost: 800, costFactor: 2.3, getLevel: (tv) => tv.upgrades.cornerBonusPercent, applyEffect: (tv) => { tv.upgrades.cornerBonusPercent++; },
-               getDescription: (tv, l) => `<strong>Scaling Corners</strong><br>Lv ${l}: +${(deriveTvCornerPercentBonus(tv,l+1)*100).toFixed(4)}% Corner Bonus from lifetime hits`
-               },
+             { id: 'cornerBonusFlat', name: 'Corner Flat Bonus', baseCost: 250, costFactor: 1.75, getLevel: (tv) => tv.upgrades.cornerBonusFlat, applyEffect: (tv) => { tv.upgrades.cornerBonusFlat++; },
+               getDescription: (tv, l) => `<strong>Big Corner Bonus</strong><br>Lv ${l}: +${formatScore(deriveTvCornerFlatBonus(tv,l+1) - tv.cornerHitBaseBonus)} Base Hits` },
+             { id: 'cornerMultiplier', name: 'Corner Multiplier', baseCost: 2000, costFactor: 2.3, getLevel: (tv) => tv.upgrades.cornerMultiplier, applyEffect: (tv) => { tv.upgrades.cornerMultiplier++; },
+               getDescription: (tv, l) => { const currentMult = deriveTvCornerMultiplier(tv, l); const nextMult = deriveTvCornerMultiplier(tv, l+1); return `<strong>Corner Multiplier</strong><br>Lv ${l}: x${currentMult.toFixed(2)} Corner Bonus<br>(Next: x${nextMult.toFixed(2)})`; } },
              { id: 'multiBox', name: 'Add Logo', baseCost: 300, costFactor: 3.5,
                 getMaxLevel: (tv) => globalState.maxBoxesPerTv, getLevel: (tv) => tv.boxes.length,
                 applyEffect: (tv, tvIndex, count = 1) => { let added = 0; for (let i = 0; i < count; i++) { if(addBoxToTv(tvIndex)) added++; else break; } if (added < count && count > 1 && tv.boxes.length >= globalState.maxBoxesPerTv) showNotification("Max logos reached!"); return added > 0; },
                 canPurchase: (tv, levelToCheck) => (levelToCheck ?? tv.boxes.length) < globalState.maxBoxesPerTv,
                 getDescription: (tv, l, maxed) => `<strong>More Logos!</strong><br>${maxed ? `Max Logos (${tv.boxes.length})` : `Add Logo (${l+1}/${globalState.maxBoxesPerTv})`}` },
-             { id: 'boxCollisionValue', name: 'Collision Hits', baseCost: 1500, costFactor: 1.95, getLevel: (tv) => tv.upgrades.boxCollisionValue, applyEffect: (tv) => { tv.upgrades.boxCollisionValue++; },
-               getDescription: (tv, l) => `<strong>Bumper Logos</strong><br>Lv ${l}: +Collision Hits` },
-             // --- END: TV Upgrade Description Changes ---
+             { id: 'boxCollisionValue', name: 'Collision Hits', baseCost: 1000, costFactor: 1.55, getLevel: (tv) => tv.upgrades.boxCollisionValue, applyEffect: (tv) => { tv.upgrades.boxCollisionValue++; },
+               getDescription: (tv, l) => `<strong>Bumper Logos</strong><br>Lv ${l}: +Collision Hits between Logos` },
         ];
         const metaUpgrades = [
-             // --- START: Meta Upgrade Description Changes ---
              { id: 'metaStaticChargeGain', name: 'Static Charge Gain', baseCost: 3, costFactor: 2.2, getLevel: () => globalState.metaLevels.staticChargeGain, applyEffect: () => { globalState.metaLevels.staticChargeGain++; },
                getDescription: (gs, l, c) => `<strong>Static Charge Boost</strong><br>Lv ${l}: +${((deriveMetaStaticChargeMult(l+1)-1)*100).toFixed(0)}% Static Charges<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
              { id: 'metaAddTv', name: 'Add New TV', baseCost: 5, costFactor: 4.5, getLevel: () => globalState.tvStates.length, applyEffect: () => { addTv(); }, canPurchase: () => true,
@@ -936,14 +993,13 @@
                applyEffect: () => { globalState.metaLevels.cornersSuckBonus++; },
                getDescription: (gs, l, c) => { const maxBonusPercent = (CORNERS_SUCK_MAX_MULTIPLIER - 1) * 100; return `<strong>Corners Suck</strong><br>Lv ${l}: +Wall hits value over time (Max +${maxBonusPercent.toFixed(0)}%)<br>Resets on TV corner hit<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>`; }
              },
-             // --- END: Meta Upgrade Description Changes ---
         ];
 
         // --- Upgrade Calculation Functions ---
-        function deriveTvHitValue(tvState, level) { return Math.max(1, Math.ceil(1 + level * 0.75)); }
+        function deriveTvHitValue(tvState, level) { return Math.max(1, Math.ceil(1 + level * 1.5)); }
         function deriveTvSpeedFactor(tvState, level) { return Math.min(3.0, (1 + level * 0.04) * tvState.baseSpeedFactorMeta); }
-        function deriveTvCornerFlatBonus(tvState, level) { return Math.max(0, Math.floor(1000 + level * 4 + Math.pow(level, 1.45))); }
-        function deriveTvCornerPercentBonus(tvState, level) { return level * 0.00001; }
+        function deriveTvCornerFlatBonus(tvState, level) { return Math.max(0, Math.floor(2000 + level * 10 + Math.pow(level, 1.55) * 50)); }
+        function deriveTvCornerMultiplier(tvState, level) { return 1.0 + level * 0.10; }
         function deriveTvCollisionBonus(tvState, level) { return Math.max(0, Math.floor(2 + level * 0.5 + Math.pow(level, 1.2))); }
         function getCurrentTvSpeed(tvState) { return BASE_SPEED_CONSTANT * deriveTvSpeedFactor(tvState, tvState.upgrades.speed); }
         function deriveMetaStaticChargeMult(level) { return 1 + level * 0.07; }
@@ -953,7 +1009,12 @@
         function deriveSynergyBonus(level) { const perTvBonus = deriveSynergyBonusPerTv(level); const numTvs = globalState?.tvStates?.length ?? 0; return 1.0 + (numTvs * perTvBonus); }
 
         // --- Apply Upgrades ---
-        function recalculateDerivedTvState(tvState) { tvState.hitValue = deriveTvHitValue(tvState, tvState.upgrades.hitValue); tvState.cornerHitBaseBonus = deriveTvCornerFlatBonus(tvState, tvState.upgrades.cornerBonusFlat); tvState.cornerHitPercentBonus = deriveTvCornerPercentBonus(tvState, tvState.upgrades.cornerBonusPercent); tvState.boxCollisionValue = deriveTvCollisionBonus(tvState, tvState.upgrades.boxCollisionValue); }
+        function recalculateDerivedTvState(tvState) {
+            tvState.hitValue = deriveTvHitValue(tvState, tvState.upgrades.hitValue);
+            tvState.cornerHitBaseBonus = deriveTvCornerFlatBonus(tvState, tvState.upgrades.cornerBonusFlat);
+            tvState.cornerHitMultiplier = deriveTvCornerMultiplier(tvState, tvState.upgrades.cornerMultiplier);
+            tvState.boxCollisionValue = deriveTvCollisionBonus(tvState, tvState.upgrades.boxCollisionValue);
+        }
         function recalculateGlobalSynergy() { globalState.synergyBonus = deriveSynergyBonus(globalState.metaLevels.tvSynergyBonus); }
         function applyMetaUpgradesToTv(tvState) { tvState.baseSpeedFactorMeta = deriveMetaBaseSpeedFactor(globalState.metaLevels.baseSpeed); recalculateDerivedTvState(tvState); resizeTvScreen(tvState); }
         function updateAllTvsPostMeta() { globalState.maxBoxesPerTv = deriveMetaBaseMaxBoxes(globalState.metaLevels.baseMaxBoxes); globalState.tvStates.forEach(tv => { applyMetaUpgradesToTv(tv); checkAndAdjustBoxPositions(tv.index); }); recalculateGlobalSynergy(); updateAllTvGlows(); }
@@ -980,7 +1041,8 @@
                         const rebootBtn = clonedReboot.querySelector('#reboot-button');
                         if (rebootBtn) { rebootBtn.onclick = executeReboot; }
                         modalRebootContainer.appendChild(clonedReboot);
-                        updateRebootPreviewIfVisible();
+                        hitsThresholdCache = {}; // Clear cache before first calculation
+                        updateRebootPreviewIfVisible(); // Includes progress bar update
                     } else { console.error("Reboot template not found!"); }
                 }
             }
@@ -1079,7 +1141,6 @@
                  if (isTvModal && tvState) {
                      bulkInfo = calculateBulkCostAndLevels(upgrade, tvState, currentScore, tvIndex);
                      isCurrentlyMaxed = bulkInfo.isMaxLevel;
-                     // Pass isCurrentlyMaxed to getDescription for TV upgrades
                      descriptionText = upgrade.getDescription(tvState, currentLevel, isCurrentlyMaxed);
                      if (!isCurrentlyMaxed) {
                          if (bulkInfo.affordable && bulkInfo.levels > 0) {
@@ -1094,7 +1155,6 @@
                      costToShow = cost;
                      bulkInfo.affordable = currentScore >= cost && !isCurrentlyMaxed;
                      bulkInfo.isMaxLevel = isCurrentlyMaxed;
-                     // Pass cost and isCurrentlyMaxed to getDescription for meta upgrades
                      descriptionText = upgrade.getDescription(globalState, currentLevel, cost, isCurrentlyMaxed);
                  }
 
@@ -1105,12 +1165,10 @@
                  if (tvIndex >= 0) btn.dataset.tvIndex = tvIndex;
 
                  btn.innerHTML = `<div class="upgrade-description">${descriptionText}</div>`;
-                 // Only add cost div for TV upgrades (meta upgrades have cost in description)
                  if (!isCurrentlyMaxed && currencyType === 'hit') {
                      btn.innerHTML += `<div class="upgrade-cost ${currencyClass}">Cost: ${formatScore(costToShow)}${levelText}</div>`;
                  } else if (isCurrentlyMaxed && currencyType === 'hit') {
-                     // Optionally indicate Maxed
-                     // btn.innerHTML += `<div class="upgrade-cost ${currencyClass}">Maxed</div>`;
+                     // Optional: Indicate Maxed
                  }
 
                  btn.disabled = isCurrentlyMaxed || !bulkInfo.affordable;
@@ -1153,7 +1211,7 @@
                     if (isTvModal && tvState) {
                         bulkInfo = calculateBulkCostAndLevels(upgrade, tvState, currentScore, tvIndex);
                         isCurrentlyMaxed = bulkInfo.isMaxLevel;
-                        descriptionText = upgrade.getDescription(tvState, currentLevel, isCurrentlyMaxed); // Pass maxed status
+                        descriptionText = upgrade.getDescription(tvState, currentLevel, isCurrentlyMaxed);
                         if (descDiv) descDiv.innerHTML = descriptionText;
 
                         if (!isCurrentlyMaxed) {
@@ -1171,7 +1229,6 @@
                             costDiv.innerHTML = `Cost: ${formatScore(costToShow)}${levelText}`;
                             costDiv.style.display = '';
                         } else {
-                             // If a cost div exists for a TV upgrade that is now maxed, hide it
                              if (costDiv) costDiv.style.display = 'none';
                         }
 
@@ -1180,11 +1237,10 @@
                         costToShow = cost;
                         bulkInfo.affordable = currentScore >= cost && !isCurrentlyMaxed;
                         bulkInfo.isMaxLevel = isCurrentlyMaxed;
-                        descriptionText = upgrade.getDescription(globalState, currentLevel, cost, isCurrentlyMaxed); // Pass cost & maxed status
+                        descriptionText = upgrade.getDescription(globalState, currentLevel, cost, isCurrentlyMaxed);
                         if (descDiv) descDiv.innerHTML = descriptionText;
-                        // Meta upgrades have cost in description, so costDiv is not needed/managed here
                         if (costDiv && currencyType === 'meta') {
-                            costDiv.style.display = 'none'; // Ensure meta cost div is hidden if it somehow exists
+                            costDiv.style.display = 'none';
                         }
                     }
 
@@ -1260,6 +1316,7 @@
                          updateSelectedTvUpgradeButtons();
                      }
                      modalTvStats.textContent = `Static Charges: ${formatScore(globalState.systemStaticCharges)}`;
+                     hitsThresholdCache = {}; // Clear cache after meta upgrade purchase
                      updateMetaUpgradeButtonsIfVisible();
                      updateRebootPreviewIfVisible();
                      updateAllTvGlows();
@@ -1280,13 +1337,164 @@
         // --- Reboot Logic ---
         function canCurrentlyReboot() { return globalState.systemStaticCharges > 0 || globalState.hasRebootedOnce || calculateStaticChargeGain(globalState.lifetimeSessionHits) > 0; }
         function checkMetaButtonVisibility() { metaMenuButton.classList.toggle('show', canCurrentlyReboot()); }
-        function updateRebootPreviewIfVisible() { if (selectedTvIndex !== -1 || !upgradeModal.classList.contains('show')) return; const rebootSection = modalRebootContainer.querySelector('#reboot-section'); if (!rebootSection) return; const rebootGainPreview = rebootSection.querySelector('#reboot-gain-preview'); const rebootButton = rebootSection.querySelector('#reboot-button'); if (!rebootGainPreview || !rebootButton) return; const gain = calculateStaticChargeGain(globalState.lifetimeSessionHits); rebootGainPreview.textContent = `Gain ~${formatScore(gain)} Static Charges (from ${formatScore(globalState.lifetimeSessionHits)} total Hits)`; rebootButton.disabled = gain <= 0; }
-        function calculateStaticChargeGain(totalLifetimeHits) { if (totalLifetimeHits < 5000) return 0; const metaMultiplier = deriveMetaStaticChargeMult(globalState.metaLevels.staticChargeGain); const baseGain = Math.pow(totalLifetimeHits / 5000, 0.45) * 1.5; const logBonus = Math.log10(totalLifetimeHits / 5000 + 1) * 0.5; const gain = Math.floor((baseGain + logBonus) * metaMultiplier); return Math.max(0, gain); }
+
+        // Finds the minimum hits needed to reach a targetGain level
+        function findHitsThreshold(targetGain) {
+            if (targetGain <= 0) return 0;
+            // Check cache first
+            if (hitsThresholdCache[targetGain] !== undefined) {
+                return hitsThresholdCache[targetGain];
+            }
+
+            let lowerBound = 0;
+            let upperBound = REBOOT_MIN_HITS_FOR_FIRST_CHARGE; // Start with a reasonable upper guess
+
+            // Quickly find an upper bound
+            let iterations = 0;
+            while (calculateStaticChargeGain(upperBound) < targetGain && iterations < 50 && upperBound < FIND_THRESHOLD_MAX_HITS) {
+                lowerBound = upperBound;
+                upperBound *= 5; // Increase guess exponentially
+                iterations++;
+            }
+            upperBound = Math.min(upperBound, FIND_THRESHOLD_MAX_HITS);
+
+            // If upper bound is still too low (or max hits reached), return max/infinity
+             if (calculateStaticChargeGain(upperBound) < targetGain || upperBound >= FIND_THRESHOLD_MAX_HITS) {
+                 hitsThresholdCache[targetGain] = Infinity; // Cache infinity if target is unreachable
+                 return Infinity;
+             }
+
+
+            // Binary search between lowerBound and upperBound
+            let bestGuess = upperBound;
+            iterations = 0; // Reset iteration count for binary search
+            while (lowerBound <= upperBound && iterations < FIND_THRESHOLD_MAX_ITERATIONS) {
+                const mid = Math.floor(lowerBound + (upperBound - lowerBound) / 2);
+                if (mid <= 0) break; // Avoid infinite loop if mid becomes 0
+
+                const gainAtMid = calculateStaticChargeGain(mid);
+
+                if (gainAtMid >= targetGain) {
+                    bestGuess = mid; // Found a potential threshold, try lower
+                    upperBound = mid - 1;
+                } else {
+                    lowerBound = mid + 1; // Need more hits
+                }
+                iterations++;
+            }
+
+             if (iterations >= FIND_THRESHOLD_MAX_ITERATIONS) {
+                 console.warn(`findHitsThreshold exceeded max iterations for targetGain ${targetGain}. Returning best guess: ${bestGuess}`);
+             }
+
+            hitsThresholdCache[targetGain] = bestGuess; // Cache the result
+            return bestGuess;
+        }
+
+
+        function updateRebootPreviewIfVisible() {
+            if (selectedTvIndex !== -1 || !upgradeModal.classList.contains('show')) return;
+            const rebootSection = modalRebootContainer.querySelector('#reboot-section');
+            if (!rebootSection) return;
+
+            const rebootGainPreview = rebootSection.querySelector('#reboot-gain-preview');
+            const rebootButton = rebootSection.querySelector('#reboot-button');
+            const progressContainer = rebootSection.querySelector('#reboot-progress-container');
+            const progressBar = rebootSection.querySelector('#reboot-progress-bar');
+            const progressText = rebootSection.querySelector('#reboot-progress-text');
+
+            if (!rebootGainPreview || !rebootButton || !progressContainer || !progressBar || !progressText) return;
+
+            const currentLifetimeHits = globalState.lifetimeSessionHits;
+            const totalPotentialGain = calculateStaticChargeGain(currentLifetimeHits);
+
+            rebootGainPreview.textContent = `Gain ~${formatScore(totalPotentialGain)} Static Charges (from ${formatScore(currentLifetimeHits)} total Hits)`;
+            rebootButton.disabled = totalPotentialGain <= 0;
+
+            // --- Progress Bar Update ---
+            let hitsForCurrentGain = 0;
+            let hitsForNextGain = Infinity;
+            let hitsRemaining = 0;
+            let progressPercent = 0;
+            let displayText = "";
+
+            if (totalPotentialGain === 0) {
+                // Progress towards the *first* charge
+                hitsForNextGain = findHitsThreshold(1);
+                if (hitsForNextGain === Infinity || hitsForNextGain <= REBOOT_MIN_HITS_FOR_FIRST_CHARGE) {
+                    hitsRemaining = REBOOT_MIN_HITS_FOR_FIRST_CHARGE - currentLifetimeHits;
+                    progressPercent = Math.min(100, Math.max(0, (currentLifetimeHits / REBOOT_MIN_HITS_FOR_FIRST_CHARGE) * 100));
+                     displayText = `${formatScore(Math.max(0, hitsRemaining))} Hits for first charge`;
+                } else {
+                    hitsRemaining = hitsForNextGain - currentLifetimeHits;
+                    progressPercent = Math.min(100, Math.max(0, (currentLifetimeHits / hitsForNextGain) * 100));
+                     displayText = `${formatScore(Math.max(0, hitsRemaining))} Hits for first charge`;
+                }
+                 progressBar.style.width = `${progressPercent}%`;
+                 progressText.textContent = displayText;
+                 progressContainer.style.display = 'block'; // Ensure it's visible
+
+            } else {
+                // Progress towards the *next* charge (gain + 1)
+                const targetGain = totalPotentialGain + 1;
+                hitsForCurrentGain = findHitsThreshold(totalPotentialGain); // Find threshold for current gain level
+                hitsForNextGain = findHitsThreshold(targetGain);     // Find threshold for next gain level
+
+                if (hitsForNextGain === Infinity || hitsForNextGain <= hitsForCurrentGain) {
+                    // Max gain reached or error in calculation
+                    progressPercent = 100;
+                    displayText = `Threshold Reached`;
+                     progressBar.style.width = '100%';
+                     progressText.textContent = displayText;
+                     progressContainer.style.display = 'block';
+                } else {
+                    const hitsInRange = hitsForNextGain - hitsForCurrentGain;
+                    const currentProgressInHits = currentLifetimeHits - hitsForCurrentGain;
+                    hitsRemaining = hitsForNextGain - currentLifetimeHits;
+
+                    progressPercent = Math.min(100, Math.max(0, (currentProgressInHits / hitsInRange) * 100));
+                    displayText = `${formatScore(Math.max(0, hitsRemaining))} Hits for next charge`;
+
+                     progressBar.style.width = `${progressPercent}%`;
+                     progressText.textContent = displayText;
+                     progressContainer.style.display = 'block';
+                }
+            }
+        }
+
+
+        function calculateStaticChargeGain(totalLifetimeHits) {
+            if (totalLifetimeHits < REBOOT_MIN_HITS_FOR_FIRST_CHARGE) return 0; // Use constant
+            const metaMultiplier = deriveMetaStaticChargeMult(globalState.metaLevels.staticChargeGain);
+            const baseGain = Math.pow(totalLifetimeHits / REBOOT_MIN_HITS_FOR_FIRST_CHARGE, 0.45) * 1.5;
+            const logBonus = Math.log10(totalLifetimeHits / REBOOT_MIN_HITS_FOR_FIRST_CHARGE + 1) * 0.5;
+            const gain = Math.floor((baseGain + logBonus) * metaMultiplier);
+            return Math.max(0, gain);
+        }
+
         function executeReboot() {
-             const staticChargesGained = calculateStaticChargeGain(globalState.lifetimeSessionHits); if (staticChargesGained <= 0) { showNotification("Not enough lifetime Hits for staticCharges"); return; } if (!confirm(`Reboot: Gain ${formatScore(staticChargesGained)} Static Charges?\n\nResets session Hits, Corner Hits & TV Upgrades.\nKeeps Static Charges, Meta Upgrades & Unlocked TVs.`)) { return; } closeUpgradeModal(); showNotification(`Rebooted! +${formatScore(staticChargesGained)} Static Charges`); globalState.systemStaticCharges += staticChargesGained; globalState.hasRebootedOnce = true; globalState.totalSessionHits = 0; globalState.lifetimeSessionHits = 0;
-             globalState.totalCornerHits = 0;
+             const staticChargesGained = calculateStaticChargeGain(globalState.lifetimeSessionHits);
+             if (staticChargesGained <= 0 && globalState.lifetimeSessionHits < REBOOT_MIN_HITS_FOR_FIRST_CHARGE) {
+                 showNotification("Not enough lifetime Hits for Static Charges");
+                 return;
+             }
+              if (!confirm(`Reboot: Gain ${formatScore(staticChargesGained)} Static Charges?\n\nResets session Hits & TV Upgrades.\nKeeps Static Charges, Meta Upgrades & Unlocked TVs.`)) {
+                 return;
+             }
+
+             closeUpgradeModal();
+             showNotification(`Rebooted! +${formatScore(staticChargesGained)} Static Charges`);
+             globalState.systemStaticCharges += staticChargesGained;
+             globalState.hasRebootedOnce = true;
+             globalState.totalSessionHits = 0;
+             globalState.lifetimeSessionHits = 0;
              boxCollisionTimers = {};
-             globalState.tvStates.forEach((tvState, index) => { Object.keys(tvState.upgrades).forEach(key => { tvState.upgrades[key] = 0; });
+             hitsThresholdCache = {}; // Clear cache on reboot
+             devSpeedFactor = 1;
+             if(document.getElementById('dev-speed-input')) document.getElementById('dev-speed-input').value = 1;
+
+             globalState.tvStates.forEach((tvState, index) => {
+                 Object.keys(tvState.upgrades).forEach(key => { tvState.upgrades[key] = 0; });
                  clearTvScreenBoxes(index);
                  tvState.boxes = [];
                  tvState.nextBoxId = 0;
@@ -1297,8 +1505,11 @@
                  resizeTvScreen(tvState);
                  checkAndAdjustBoxPositions(index);
             });
-             recalculateGlobalSynergy(); updateTotalHitsDisplay(); updateTotalCornerHitsDisplay();
-             updateAllTvGlows(); checkMetaButtonVisibility(); saveGame();
+             recalculateGlobalSynergy();
+             updateTotalHitsDisplay();
+             updateAllTvGlows();
+             checkMetaButtonVisibility();
+             saveGame();
          }
 
         // --- Saving and Loading ---
@@ -1339,23 +1550,35 @@
             let needsInitialization = true;
             let offlineGains = 0;
 
+            devSpeedFactor = 1;
+            const speedInput = document.getElementById('dev-speed-input');
+            if (speedInput) speedInput.value = devSpeedFactor;
+
+
             if (savedData) {
                 try {
                     const loadedState = JSON.parse(savedData);
-                    // Updated validation to check for the new meta level specifically
-                    if (typeof loadedState.systemStaticCharges === 'number' && Array.isArray(loadedState.tvStates) && loadedState.metaLevels && typeof loadedState.metaLevels.cornersSuckBonus === 'number') {
+                    let hasNewCornerUpgrade = false;
+                    if (Array.isArray(loadedState.tvStates) && loadedState.tvStates.length > 0 && loadedState.tvStates[0].upgrades) {
+                       hasNewCornerUpgrade = loadedState.tvStates[0].upgrades.hasOwnProperty('cornerMultiplier');
+                    }
+
+                    if (typeof loadedState.systemStaticCharges === 'number' &&
+                        Array.isArray(loadedState.tvStates) &&
+                        loadedState.metaLevels &&
+                        typeof loadedState.metaLevels.cornersSuckBonus === 'number' && // Check for a known required meta level
+                        hasNewCornerUpgrade) {
+
                         globalState = createDefaultGlobalState();
                         globalState = deepMerge(globalState, loadedState);
 
                         globalState.totalSessionHits = Number(globalState.totalSessionHits) || 0;
                         globalState.lifetimeSessionHits = Number(globalState.lifetimeSessionHits) || globalState.totalSessionHits;
-                        globalState.totalCornerHits = Number(globalState.totalCornerHits) || 0;
                         globalState.systemStaticCharges = Number(globalState.systemStaticCharges) || 0;
                         globalState.hasRebootedOnce = Boolean(globalState.hasRebootedOnce);
                         globalState.lastSaveTimestamp = Number(globalState.lastSaveTimestamp) || null;
 
                         Object.keys(globalState.metaLevels).forEach(key => {
-                            // Ensure all expected meta levels exist, defaulting to 0 if missing
                             if (globalState.metaLevels[key] === undefined) {
                                 console.warn(`Meta level ${key} missing from save, initializing to 0.`);
                                 globalState.metaLevels[key] = 0;
@@ -1384,7 +1607,6 @@
                             offlineTimeMs = Math.min(offlineTimeMs, MAX_OFFLINE_TIME_MS);
 
                             if (offlineTimeMs >= MIN_OFFLINE_TIME_MS) {
-                                // Update derived states *before* calculating offline gains based on them
                                 updateAllTvsPostMeta();
                                 recalculateGlobalSynergy();
 
@@ -1403,7 +1625,7 @@
                              console.log("No valid lastSaveTimestamp found for offline calculation.");
                         }
 
-                        // Validate TV states *after* potential offline gains
+                        // Validate TV states
                         globalState.tvStates.forEach((tv, index) => {
                             tv.index = index;
                             tv.boxes = Array.isArray(tv.boxes) ? tv.boxes : [];
@@ -1416,24 +1638,25 @@
                             });
                             tv.nextBoxId = Math.max(tv.nextBoxId || 0, (tv.boxes.reduce((max, box) => Math.max(max, box.id ?? -1), -1) + 1));
                             tv.lastCornerHitTimestamp = (typeof tv.lastCornerHitTimestamp === 'number' && tv.lastCornerHitTimestamp > 0) ? tv.lastCornerHitTimestamp : null;
-                            // Ensure all expected upgrades exist in the loaded TV state
                             Object.keys(createDefaultTvState(0,0).upgrades).forEach(upgradeKey => {
-                                if (tv.upgrades[upgradeKey] === undefined) {
+                                if (!tv.upgrades || tv.upgrades[upgradeKey] === undefined) {
                                     console.warn(`TV ${tv.id} missing upgrade ${upgradeKey} from save, initializing to 0.`);
+                                    if (!tv.upgrades) tv.upgrades = {};
                                     tv.upgrades[upgradeKey] = 0;
                                 }
                             });
                         });
                         nextTvId = globalState.nextTvId;
                         boxCollisionTimers = {};
+                        hitsThresholdCache = {}; // Clear cache on load
 
-                        updateAllTvsPostMeta(); // Re-apply potentially updated meta levels
+                        updateAllTvsPostMeta();
                         recalculateGlobalSynergy();
 
                         showNotification(`Loaded Game State${offlineGains > 0 ? ` (+${formatScore(offlineGains)} Offline Hits)` : ''}`);
                         needsInitialization = false;
                     } else {
-                        console.warn("Invalid save data structure found (or missing new meta field 'cornersSuckBonus'), resetting.", loadedState);
+                        console.warn("Invalid save data structure found or missing required keys, resetting.", loadedState);
                         localStorage.removeItem(SAVE_KEY);
                     }
                 } catch (e) {
@@ -1450,12 +1673,12 @@
                 recalculateGlobalSynergy();
                 addTv();
                 selectedBuyAmount = 1;
+                hitsThresholdCache = {}; // Clear cache on init
             }
 
              recreateAllDomElements();
              checkMetaButtonVisibility();
              updateTotalHitsDisplay();
-             updateTotalCornerHitsDisplay();
              updateAllTvGlows();
              requestAnimationFrame(handleGlobalResize);
         }
@@ -1476,12 +1699,7 @@
                 }
                 if (isObject(sourceValue)) {
                     if (isObject(targetValue)) {
-                        // Ensure nested objects like 'upgrades' and 'metaLevels' are handled correctly
-                        if (key === 'upgrades' || key === 'metaLevels') {
-                           output[key] = deepMerge(targetValue, sourceValue); // Merge level by level
-                        } else {
-                            output[key] = deepMerge(targetValue, sourceValue); // Standard deep merge
-                        }
+                       output[key] = deepMerge(targetValue, sourceValue);
                     } else {
                         output[key] = JSON.parse(JSON.stringify(sourceValue));
                     }
@@ -1505,8 +1723,17 @@
             const tvState = {
                 index: index, id: id,
                 boxes: [], nextBoxId: 0,
-                upgrades: { hitValue: 0, speed: 0, cornerBonusFlat: 0, cornerBonusPercent: 0, boxCollisionValue: 0 },
-                hitValue: 1, cornerHitBaseBonus: 1000, cornerHitPercentBonus: 0, boxCollisionValue: 2,
+                upgrades: {
+                    hitValue: 0,
+                    speed: 0,
+                    cornerBonusFlat: 0,
+                    cornerMultiplier: 0,
+                    boxCollisionValue: 0
+                },
+                hitValue: 1,
+                cornerHitBaseBonus: 2000, // Initial base value
+                cornerHitMultiplier: 1.0,
+                boxCollisionValue: 2,
                 baseSpeedFactorMeta: 1.0,
                 lastCornerHitTimestamp: null,
                 screenWidth: 0, screenHeight: 0,
@@ -1523,17 +1750,16 @@
                 systemStaticCharges: 0,
                 totalSessionHits: 0,
                 lifetimeSessionHits: 0,
-                totalCornerHits: 0,
                 tvStates: [],
                 metaLevels: {
                     staticChargeGain: 0,
                     baseSpeed: 0,
                     baseMaxBoxes: 0,
                     tvSynergyBonus: 0,
-                    cornersSuckBonus: 0, // Initialize new meta level
+                    cornersSuckBonus: 0,
                 },
                 synergyBonus: 1.0,
-                maxBoxesPerTv: 2, // Derived from metaLevels.baseMaxBoxes (2 + 0 = 2)
+                maxBoxesPerTv: 2,
                 hasRebootedOnce: false,
                 nextTvId: 0,
                 selectedBuyAmount: 1,
@@ -1549,12 +1775,8 @@
             globalState.tvStates.forEach(tvState => {
                 if (tvState.boxes.length === 0) return;
 
-                // Ensure derived state is correct for the TV *before* calculation
-                // applyMetaUpgradesToTv(tvState); // This recalculates derived stats too
-                // Note: We rely on loadGame calling updateAllTvsPostMeta() before this
-
                 const tvSpeedFactor = deriveTvSpeedFactor(tvState, tvState.upgrades.speed);
-                const tvHitValue = tvState.hitValue; // Use the recalculated base hit value
+                const tvHitValue = tvState.hitValue;
                 const numBoxes = tvState.boxes.length;
 
                 const hitsPerSecPerBox = IDLE_HITS_PER_SEC_PER_BOX_BASE_FACTOR * tvSpeedFactor;
@@ -1562,8 +1784,7 @@
                 totalIdleHitsPerSec += idleHitsPerTvPerSec;
             });
 
-            // Apply global synergy and dev factor
-            const totalEffectiveIdleHitsPerSec = totalIdleHitsPerSec * globalState.synergyBonus * DEV_SPEED_FACTOR;
+            const totalEffectiveIdleHitsPerSec = totalIdleHitsPerSec * globalState.synergyBonus * devSpeedFactor;
             const totalGainedHits = totalEffectiveIdleHitsPerSec * (idleTimeMs / 1000);
 
             return Math.max(0, Math.floor(totalGainedHits));
@@ -1574,11 +1795,16 @@
             const now = performance.now();
             if (document.hidden) {
                 timeHidden = now;
-                saveGame(); // Save state when going hidden
+                saveGame();
             } else {
                 if (timeHidden !== null) {
                     const idleTimeMs = now - timeHidden;
                     if (idleTimeMs > 1000) {
+                         // Recalculate derived states *before* calculating offline gains
+                         updateAllTvsPostMeta();
+                         recalculateGlobalSynergy();
+                         hitsThresholdCache = {}; // Clear cache after potential meta changes during offline
+
                         const gainedHits = calculateIdleGains(idleTimeMs);
                         if (gainedHits > 0) {
                             globalState.totalSessionHits += gainedHits;
@@ -1599,6 +1825,94 @@
             }
         }
 
+        // --- DEV Tools Functionality ---
+        const devButton = document.getElementById('dev-button');
+        const devPanel = document.getElementById('dev-panel');
+        const devSimulateCornerButton = document.getElementById('dev-simulate-corner');
+        const devHardResetButton = document.getElementById('dev-hard-reset');
+        const devSpeedInput = document.getElementById('dev-speed-input');
+
+        if (devButton && devPanel) {
+            devButton.addEventListener('click', () => {
+                devPanel.classList.toggle('hidden');
+            });
+        }
+
+        if (devSimulateCornerButton) {
+            devSimulateCornerButton.addEventListener('click', () => {
+                if (!globalState || !globalState.tvStates || globalState.tvStates.length === 0) {
+                    console.warn("DEV: No TVs available to simulate corner hit.");
+                    showNotification("DEV: No TVs available!");
+                    return;
+                }
+                const tvIndex = 0;
+                const tvState = globalState.tvStates[tvIndex];
+                if (!tvState || !tvState.elements || !tvState.elements.screen || !tvState.screenWidth) {
+                    console.warn("DEV: First TV state or elements not ready.");
+                     showNotification("DEV: TV not ready!");
+                    return;
+                }
+
+                console.log(`DEV: Simulating corner hit on TV #${tvState.id}`);
+                const finalCornerBonus = Math.ceil(tvState.cornerHitBaseBonus * tvState.cornerHitMultiplier * globalState.synergyBonus * devSpeedFactor);
+
+                addTvHitScore(finalCornerBonus);
+                updateTotalHitsDisplay();
+
+                const cornerX = 0;
+                const cornerY = 0;
+                createSparkParticles(tvState, cornerX, cornerY);
+                showFloatText(tvState, `CORNER HIT!\n+${formatScore(finalCornerBonus)}`, tvState.screenWidth / 2, tvState.screenHeight / 2, 'corner');
+                showNotification(`DEV: Simulated Corner Hit (+${formatScore(finalCornerBonus)} Hits)`);
+
+                updateTvGlow(tvIndex);
+                updateAllTvGlows();
+                if (upgradeModal.classList.contains('show')) {
+                     hitsThresholdCache = {}; // Clear cache if hits changed
+                     updateSelectedTvUpgradeButtons();
+                     updateMetaUpgradeButtonsIfVisible();
+                     updateRebootPreviewIfVisible();
+                 }
+            });
+        }
+
+
+        if (devSpeedInput) {
+            devSpeedInput.value = devSpeedFactor;
+            devSpeedInput.addEventListener('input', () => {
+                let newSpeed = parseFloat(devSpeedInput.value);
+                if (isNaN(newSpeed) || newSpeed <= 0) {
+                    newSpeed = 0.1;
+                    devSpeedInput.value = newSpeed;
+                }
+
+                if (devSpeedFactor !== newSpeed) {
+                    devSpeedFactor = newSpeed;
+                    console.log(`DEV: Score Factor set to ${devSpeedFactor}`);
+                    // Optional: Update UI elements affected by score factor if modal is open
+                    if (upgradeModal.classList.contains('show')) {
+                        hitsThresholdCache = {}; // Clear cache if factor changes
+                        updateMetaUpgradeButtonsIfVisible();
+                        updateRebootPreviewIfVisible();
+                    }
+                }
+            });
+        }
+
+        if (devHardResetButton) {
+            devHardResetButton.addEventListener('click', () => {
+                if (confirm('HARD RESET GAME?\n\nThis will erase ALL saved progress and reload the page.')) {
+                    console.warn("DEV: Performing hard reset.");
+                    localStorage.removeItem(SAVE_KEY);
+                    showNotification("DEV: Hard Resetting...");
+                    if(devPanel) devPanel.classList.add('hidden');
+                    if(gameLoopInterval) clearInterval(gameLoopInterval); // Stop loop before reload
+                    location.reload(true);
+                }
+            });
+        }
+        // --- End DEV Tools Functionality ---
+
 
         // --- Initialization ---
         async function init() {
@@ -1612,7 +1926,7 @@
                  console.error("Image preloading issues:", error);
              }
 
-             loadGame(); // Load game state (includes offline calc and DOM recreation)
+             loadGame();
 
              // --- Event Listeners ---
              modalCloseButton.addEventListener('click', closeUpgradeModal);
