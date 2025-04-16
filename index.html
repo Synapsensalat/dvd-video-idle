@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -229,11 +228,12 @@
         .buy-amount-button:hover { background-color: var(--button-hover); }
         .buy-amount-button.active { background-color: var(--button-active); border-color: #999; font-weight: bold; }
         .upgrades-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 10px; width: 100%; margin-bottom: 15px;}
-        .upgrade-button { background-color: var(--button-bg); color: var(--accent-color); border: 1px solid var(--border-color); padding: 10px 6px; border-radius: 6px; cursor: pointer; font-size: clamp(0.7rem, 2vw, 0.85rem); transition: background-color 0.2s, transform 0.1s; text-align: center; min-height: 65px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+        .upgrade-button { background-color: var(--button-bg); color: var(--accent-color); border: 1px solid var(--border-color); padding: 10px 6px; border-radius: 6px; cursor: pointer; font-size: clamp(0.7rem, 2vw, 0.85rem); transition: background-color 0.2s, transform 0.1s; text-align: center; min-height: 85px; /* Increased min-height */ display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
         .upgrade-button:hover:not(:disabled) { background-color: var(--button-hover); }
         .upgrade-button:active:not(:disabled) { transform: scale(0.96); }
         .upgrade-button:disabled { background-color: #333; color: var(--disabled-color); cursor: not-allowed; opacity: 0.6; }
         .upgrade-description { flex-grow: 1; margin-bottom: 4px; }
+        .upgrade-description strong { font-size: 1.1em; display: block; margin-bottom: 3px; line-height: 1.1; } /* Style the title */
         .upgrade-cost { font-size: 0.9em; font-weight: bold; margin-top: auto; }
         .upgrade-cost.hit { color: var(--highlight-color-hits); }
         .upgrade-cost.meta { color: var(--meta-color); }
@@ -290,7 +290,7 @@
 <div id="game-container">
     <div id="top-info-bar">
         <div id="total-hits-display" class="top-info-display">Hits: 0</div>
-      <!-- <div id="total-corner-hits-display" class="top-info-display">Corners: 0</div> -->
+        <!-- <div id="total-corner-hits-display" class="top-info-display">Corners: 0</div> -->
     </div>
     <div id="tvs-display-area"></div>
     <button id="meta-menu-button" aria-label="Meta Upgrades & Reboot">✵</button>
@@ -311,8 +311,8 @@
 
 <div id="reboot-section-template" style="display: none;">
     <div id="reboot-section">
-        <div id="reboot-info">Reboot to gain Fragments based on total Hits this session.</div>
-        <div id="reboot-gain-preview">Gain ~0 Fragments</div>
+        <div id="reboot-info">Reboot to gain Static Charges based on total Hits this session.</div>
+        <div id="reboot-gain-preview">Gain ~0 Static Charges</div>
         <button id="reboot-button" disabled>Reboot System</button>
     </div>
 </div>
@@ -323,14 +323,14 @@
     (function() {
 
         // --- Game Constants ---
-        const DEV_SPEED_FACTOR = 1;
-        const DVD_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/6/64/DVD_VIDEO_logo.png';
+        const DEV_SPEED_FACTOR = 1; // Set back to 1 for normal gameplay
+        const DVD_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png';
         const TV_BACKGROUND_URL = 'https://00s.myretrotvs.com/img/tvbackclean.webp';
         const BASE_LOGO_HEIGHT_SCREEN_RATIO = 0.14;
         const BASE_BOX_ASPECT_RATIO = 1.6;
         const BASE_SPEED_CONSTANT = 1.0;
         const MAX_BOXES_PER_TV = 15;
-        const SAVE_VERSION = 'v0.2'; 
+        const SAVE_VERSION = 'v0.3'; // Keep version consistent if state structure didn't break save compatibility
         const SAVE_KEY = `dvdVideoIdleSave_${SAVE_VERSION}`;
         const TICK_RATE_MS = 16;
         const COLLISION_ENERGY_LOSS = 0.96;
@@ -342,6 +342,10 @@
         const MIN_LOADING_TIME_MS = 2000;
         const MIN_OFFLINE_TIME_MS = 60 * 1000; // 1 minute minimum for offline calc
         const MAX_OFFLINE_TIME_MS = 14 * 24 * 60 * 60 * 1000; // 14 days maximum for offline calc
+        const CORNERS_SUCK_TIME_SCALE_FACTOR = 6000;
+        const CORNERS_SUCK_LEVEL_SCALE_FACTOR = 0.01;
+        const CORNERS_SUCK_MAX_MULTIPLIER = 3.0;
+
 
         // --- DOM Element Selection ---
         const loadingScreen = document.getElementById('loading-screen');
@@ -363,12 +367,12 @@
         let globalState;
         let selectedTvIndex = -1;
         let gameLoopInterval = null;
-        let lastTimestamp = 0; // Used for active game loop delta time (performance.now())
-        let lastSaveTime = 0; // Used for periodic saving interval (Date.now())
+        let lastTimestamp = 0;
+        let lastSaveTime = 0;
         let nextTvId = 0;
         let boxCollisionTimers = {};
         let selectedBuyAmount = 1;
-        let timeHidden = null; // Used for tab visibility idle calc (performance.now())
+        let timeHidden = null;
 
         // --- Utility Functions ---
         const calculateCost = (baseCost, level, factor = 1.5, tvIndex = -1) => { let cost = baseCost * Math.pow(factor, level); if (tvIndex >= 0 && tvIndex > 0) { cost *= Math.pow(TV_COST_SCALING_FACTOR, tvIndex); } return Math.max(1, Math.floor(cost)); };
@@ -432,13 +436,13 @@
             }
             if (!tvState.screenWidth || !tvState.screenHeight) {
                  console.warn("Screen dimensions not ready for TV", tvState.id, "retrying box creation soon.");
-                 // Add a slight delay and retry, only if the element doesn't exist yet
                  if(!boxData.element){
                      setTimeout(() => {
-                        if(tvState.boxes.find(b => b.id === boxData.id && !b.element)) {
-                            const reBox = tvState.boxes.find(b => b.id === boxData.id);
-                            if (reBox && !reBox.element) { // Double check element is still needed
-                                reBox.element = createBoxElement(tvState, reBox);
+                        if(globalState && globalState.tvStates[tvState.index]) { // Check if tvState still exists
+                            const currentTvState = globalState.tvStates[tvState.index];
+                            const reBox = currentTvState.boxes.find(b => b.id === boxData.id && !b.element);
+                            if (reBox && !reBox.element) {
+                                reBox.element = createBoxElement(currentTvState, reBox);
                                 if(reBox.element) {
                                     reBox.element.style.transform = `translate(${reBox.x}px, ${reBox.y}px)`;
                                 }
@@ -455,7 +459,7 @@
             boxElement.style.width = `${tvState.dynamicBoxWidth}px`;
             boxElement.style.height = `${tvState.dynamicBoxHeight}px`;
             boxElement.style.transform = `translate(${boxData.x}px, ${boxData.y}px)`;
-            boxElement.style.backgroundColor = getRandomColor(); // Set dynamic color here
+            boxElement.style.backgroundColor = getRandomColor();
             boxElement.style.maskImage = `url('${DVD_LOGO_URL}')`;
             boxElement.style.webkitMaskImage = `url('${DVD_LOGO_URL}')`;
             tvState.elements.screen.appendChild(boxElement);
@@ -469,8 +473,8 @@
 
             if (!tvState.elements || !tvState.elements.screen || !tvState.screenWidth || !tvState.screenHeight) {
                  console.warn(`TV ${tvState.id}: Screen dimensions not ready, delaying box add.`);
-                 resizeTvScreen(tvState); // Attempt resize first
-                 setTimeout(() => addBoxToTv(tvIndex), 100); // Retry after delay
+                 resizeTvScreen(tvState);
+                 setTimeout(() => addBoxToTv(tvIndex), 100);
                  return false;
              }
 
@@ -503,29 +507,27 @@
 
             newBox.element = createBoxElement(tvState, newBox);
 
-            // Check if element creation was successful or delayed
-            if (newBox.element || !tvState.screenWidth) { // Add to boxes even if element creation delayed
+            if (newBox.element || !tvState.screenWidth) {
                  tvState.boxes.push(newBox);
-                 updateTvGlow(tvIndex); // Update glow now
+                 updateTvGlow(tvIndex);
                  return true;
             } else {
                  console.warn("Box element creation potentially delayed for TV", tvState.id);
-                 // Don't decrement nextBoxId here, let the retry handle element creation
-                 tvState.boxes.push(newBox); // Still add the box data
+                 tvState.boxes.push(newBox);
                  updateTvGlow(tvIndex);
-                 return true; // Indicate box was added logically, element might follow
+                 return true;
             }
         }
 
         function addTv() {
             const newIndex = globalState.tvStates.length;
             const newId = nextTvId++;
-            globalState.nextTvId = nextTvId; // Update global state immediately
+            globalState.nextTvId = nextTvId;
             const newTvState = createDefaultTvState(newIndex, newId);
             applyMetaUpgradesToTv(newTvState);
             globalState.tvStates.push(newTvState);
             createTvDom(newTvState);
-            addBoxToTv(newIndex); // This might return before the box is fully rendered if screen size isn't ready
+            addBoxToTv(newIndex);
             recalculateGlobalSynergy();
             updateMetaUpgradeButtonsIfVisible();
             updateAllTvGlows();
@@ -542,15 +544,14 @@
                         console.warn(`Invalid box data on load for TV ${tvState.id} box ${box.id}. Resetting position/velocity.`);
                         box.x = 50; box.y = 50; box.vx = (Math.random()-0.5)*0.5; box.vy = (Math.random()-0.5)*0.5;
                     }
-                    box.element = null; // Ensure element is recreated
+                    box.element = null;
                     box.element = createBoxElement(tvState, box);
-                    // Log if element creation failed immediately (might succeed on retry)
                     if (!box.element && tvState.screenWidth) {
                         console.warn(`Box element recreation potentially delayed for TV ${tvState.id} box ${box.id}`);
                     }
                  });
-                 resizeTvScreen(tvState); // Resize after creating elements
-                 checkAndAdjustBoxPositions(tvState.index); // Adjust positions after potential resize
+                 resizeTvScreen(tvState);
+                 checkAndAdjustBoxPositions(tvState.index);
                  updateTvGlow(tvState.index);
              });
              updateAllTvGlows();
@@ -558,26 +559,24 @@
          function clearTvScreenBoxes(tvIndex) {
              const tvState = globalState.tvStates[tvIndex];
              if (tvState && tvState.elements && tvState.elements.screen) {
-                 tvState.elements.screen.innerHTML = ''; // Clear screen content
-                 tvState.boxes.forEach(box => box.element = null); // Nullify element references
+                 tvState.elements.screen.innerHTML = '';
+                 tvState.boxes.forEach(box => box.element = null);
              }
          }
 
         // --- Sizing and Positioning ---
         function resizeTvScreen(tvState) {
             if (!tvState.elements || !tvState.elements.screen) {
-                 // If elements are missing, attempt to recreate them if the TV state exists
                  if (globalState && globalState.tvStates[tvState.index] && !tvState.elements) {
                      console.warn(`Elements missing for TV ${tvState.id}, attempting recreation.`);
-                     recreateAllDomElements(); // Might be overkill, but ensures consistency
+                     recreateAllDomElements();
                  }
                  return;
             }
             const screenRect = tvState.elements.screen.getBoundingClientRect();
 
             if (screenRect.width <= 0 || screenRect.height <= 0) {
-                if (!document.hidden) { // Only retry if visible
-                    // Reduced frequency of resize retries
+                if (!document.hidden) {
                     if (!tvState.resizeRetryTimeout) {
                          tvState.resizeRetryTimeout = setTimeout(() => {
                              tvState.resizeRetryTimeout = null;
@@ -596,14 +595,12 @@
             tvState.dynamicBoxHeight = Math.max(8, Math.floor(tvState.screenHeight * BASE_LOGO_HEIGHT_SCREEN_RATIO));
             tvState.dynamicBoxWidth = Math.floor(tvState.dynamicBoxHeight * BASE_BOX_ASPECT_RATIO);
 
-            // Only resize boxes if dimensions actually changed significantly
             if (Math.abs(tvState.screenWidth - oldWidth) > 1 || Math.abs(tvState.screenHeight - oldHeight) > 1) {
                 tvState.boxes.forEach(box => {
                     if (box.element) {
                         box.element.style.width = `${tvState.dynamicBoxWidth}px`;
                         box.element.style.height = `${tvState.dynamicBoxHeight}px`;
                     }
-                    // Re-check and adjust position immediately after resize
                     box.x = Math.max(0, Math.min(box.x ?? tvState.screenWidth/2, tvState.screenWidth - tvState.dynamicBoxWidth));
                     box.y = Math.max(0, Math.min(box.y ?? tvState.screenHeight/2, tvState.screenHeight - tvState.dynamicBoxHeight));
                      if (box.element) {
@@ -616,14 +613,11 @@
         function handleGlobalResize() {
             globalState.tvStates.forEach(tvState => {
                 resizeTvScreen(tvState);
-                // Adjustment now happens within resizeTvScreen if dimensions changed
             });
         }
-        // This function ensures boxes are within bounds, useful after loading or significant resizes
         function checkAndAdjustBoxPositions(tvIndex) {
             const tvState = globalState.tvStates[tvIndex];
              if (!tvState || !tvState.screenWidth || !tvState.screenHeight || !tvState.dynamicBoxWidth || tvState.screenWidth <= 0 || tvState.screenHeight <= 0) {
-                 // Delay adjustment if dimensions aren't ready
                  if (!document.hidden && !tvState.adjustRetryTimeout) {
                      tvState.adjustRetryTimeout = setTimeout(() => {
                          tvState.adjustRetryTimeout = null;
@@ -638,7 +632,6 @@
                 if (box.element) {
                     box.element.style.transform = `translate(${box.x}px, ${box.y}px)`;
                 } else {
-                    // If element doesn't exist yet, try creating it again
                     box.element = createBoxElement(tvState, box);
                 }
             });
@@ -646,54 +639,47 @@
 
         // --- Update Loop ---
         function gameLoop(timestamp) {
-            // Important: Use performance.now() for smooth animation timing
-            if (document.hidden) { return; } // Don't run active loop if tab is hidden
+            if (document.hidden) { return; }
 
             if (!lastTimestamp) { lastTimestamp = timestamp; return; }
-            const deltaTime = Math.min(0.1, (timestamp - lastTimestamp) / 1000); // Limit delta time (seconds)
-            lastTimestamp = timestamp; // Store current time for next frame calculation
+            const deltaTime = Math.min(0.1, (timestamp - lastTimestamp) / 1000);
+            lastTimestamp = timestamp;
 
-            // Update game state for each TV
             globalState.tvStates.forEach((tvState, tvIndex) => {
                  if (!tvState.screenWidth || tvState.screenWidth <= 0) {
-                    resizeTvScreen(tvState); // Try to resize if dimensions are missing/invalid
+                    resizeTvScreen(tvState);
                  } else {
-                    updateSingleTv(tvState, tvIndex, deltaTime, timestamp); // Pass performance timestamp for collision timers
+                    updateSingleTv(tvState, tvIndex, deltaTime, timestamp);
                  }
              });
 
-            // Update UI displays
             updateTotalHitsDisplay();
             updateTotalCornerHitsDisplay();
-            updateAllTvGlows(); // Moved from inside updateSingleTv for efficiency
+            updateAllTvGlows();
             checkMetaButtonVisibility();
 
-            // Update modal buttons if open
             if (upgradeModal.classList.contains('show')) {
                 if (selectedTvIndex !== -1) {
                     const tvState = globalState.tvStates[selectedTvIndex];
                     if (tvState) updateModalTvStats(tvState);
                     updateSelectedTvUpgradeButtons();
                 } else {
-                    modalTvStats.textContent = `Fragments: ${formatScore(globalState.systemFragments)}`;
+                    modalTvStats.textContent = `Static Charges: ${formatScore(globalState.systemStaticCharges)}`;
                     updateMetaUpgradeButtonsIfVisible();
                     updateRebootPreviewIfVisible();
                 }
             }
 
-            // Periodic save (using Date.now() for interval check)
             const now = Date.now();
-            if (now - lastSaveTime > 5000) { // Save every 5 seconds
-                saveGame(); // This function now updates globalState.lastSaveTimestamp
+            if (now - lastSaveTime > 5000) {
+                saveGame();
                 lastSaveTime = now;
             }
         }
 
-        function updateSingleTv(tvState, tvIndex, deltaTime, timestamp) { // timestamp is performance.now()
-             // Ensure dimensions are valid before proceeding
+        function updateSingleTv(tvState, tvIndex, deltaTime, timestamp) {
              if (!tvState.screenWidth || !tvState.screenHeight || !tvState.dynamicBoxWidth || !tvState.dynamicBoxHeight || tvState.screenWidth <= 0 || tvState.screenHeight <= 0) {
-                 // resizeTvScreen(tvState); // Resize is handled in gameLoop now
-                 return; // Skip update if dimensions are invalid
+                 return;
              }
             const screenWidth = tvState.screenWidth;
             const screenHeight = tvState.screenHeight;
@@ -706,85 +692,98 @@
 
             tvState.boxes.forEach(box => {
                  if (!box.element) {
-                     // Attempt to recreate element if missing (e.g., after load/resize issue)
                      box.element = createBoxElement(tvState, box);
-                     if(!box.element) return; // Skip this box if element creation fails again
-                     // Ensure position is set correctly if element was just created
+                     if(!box.element) return;
                      box.element.style.transform = `translate(${box.x}px, ${box.y}px)`;
                   }
 
-                // Basic physics update
-                if (isNaN(box.vx) || isNaN(box.vy)) return; // Skip if velocity is invalid
+                if (isNaN(box.vx) || isNaN(box.vy)) { box.vx = (Math.random()-0.5)*currentSpeed*0.5; box.vy = (Math.random()-0.5)*currentSpeed*0.5; }; // Reset velocity if invalid
                 let boxVX = box.vx; let boxVY = box.vy;
-                // Adjust speed to match current upgrade level (smoothly)
                 const speedMagnitude = Math.sqrt(boxVX**2 + boxVY**2);
                 if (speedMagnitude > 0.01 && Math.abs(speedMagnitude - currentSpeed) > 0.1 * currentSpeed) {
                     const sf = currentSpeed/speedMagnitude;
                     boxVX*=(isNaN(sf)?1:sf); boxVY*=(isNaN(sf)?1:sf);
-                } else if (speedMagnitude < 0.1*currentSpeed && currentSpeed > 0.1) { // Give a kick if too slow
+                } else if (speedMagnitude < 0.1*currentSpeed && currentSpeed > 0.1) {
                     const a = Math.random()*Math.PI*2;
                     boxVX=Math.cos(a)*currentSpeed*0.5; boxVY=Math.sin(a)*currentSpeed*0.5;
                 }
-                // Calculate movement based on delta time
-                let deltaX = boxVX*deltaTime*60; // Scale movement by 60 for more intuitive speed values
+
+                let deltaX = boxVX*deltaTime*60;
                 let deltaY = boxVY*deltaTime*60;
-                // Clamp delta movement to avoid tunnelling through thin objects or extreme speeds
                 deltaX = Math.max(-effectiveBoxWidth*0.8,Math.min(effectiveBoxWidth*0.8,deltaX));
                 deltaY = Math.max(-effectiveBoxHeight*0.8,Math.min(effectiveBoxHeight*0.8,deltaY));
                 box.x += deltaX;
                 box.y += deltaY;
 
-                // Wall collision detection & response
                 let hitWall=false; let hitX=false, hitY=false; let hitSide = '';
                 if (box.x <= 0 && boxVX < 0) { box.x = 0+Math.random()*0.1; boxVX = Math.abs(boxVX); hitWall=true; hitX=true; hitSide='left';}
                 else if (box.x >= screenWidth-effectiveBoxWidth && boxVX > 0) { box.x = screenWidth-effectiveBoxWidth-Math.random()*0.1; boxVX = -Math.abs(boxVX); hitWall=true; hitX=true; hitSide='right';}
                 if (box.y <= 0 && boxVY < 0) { box.y = 0+Math.random()*0.1; boxVY = Math.abs(boxVY); hitWall=true; hitY=true; hitSide='top';}
                 else if (box.y >= screenHeight-effectiveBoxHeight && boxVY > 0) { box.y = screenHeight-effectiveBoxHeight-Math.random()*0.1; boxVY = -Math.abs(boxVY); hitWall=true; hitY=true; hitSide='bottom';}
 
-                // Handle hits
                 if (hitWall) {
                     if (box.element) box.element.style.backgroundColor = getRandomColor();
-                    // Corner hit detection (more precise)
-                    const cornerThreshold = Math.min(1.5, effectiveBoxWidth * 0.03, effectiveBoxHeight * 0.03); // Small threshold
+                    const cornerThreshold = Math.min(1.5, effectiveBoxWidth * 0.03, effectiveBoxHeight * 0.03);
                     const isNearLeft = box.x <= cornerThreshold;
                     const isNearRight = box.x >= screenWidth-effectiveBoxWidth-cornerThreshold;
                     const isNearTop = box.y <= cornerThreshold;
                     const isNearBottom = box.y >= screenHeight-effectiveBoxHeight-cornerThreshold;
                     const isCorner = (isNearLeft || isNearRight) && (isNearTop || isNearBottom);
 
-                    if (isCorner && hitX && hitY) { // Requires hitting both walls near simultaneously
+                    if (isCorner && hitX && hitY) {
                         globalState.totalCornerHits++;
+                        tvState.lastCornerHitTimestamp = Date.now();
+
                         let cornerX = isNearLeft ? 0 : screenWidth;
                         let cornerY = isNearTop ? 0 : screenHeight;
                         const escapeFactor = 1.08;
                         if (isNearLeft) boxVX=Math.abs(boxVX)*escapeFactor; else boxVX=-Math.abs(boxVX)*escapeFactor;
                         if (isNearTop) boxVY=Math.abs(boxVY)*escapeFactor; else boxVY=-Math.abs(boxVY)*escapeFactor;
+
                         const baseBonus = tvState.cornerHitBaseBonus;
                         const percentBonus = globalState.lifetimeSessionHits * tvState.cornerHitPercentBonus;
                         const totalCornerBonus = (baseBonus + percentBonus);
-                        cornerHitData.push({ x: cornerX, y: cornerY, boxId: box.id, bonusAmount: totalCornerBonus });
+                        const finalCornerBonus = Math.ceil(totalCornerBonus * globalState.synergyBonus * DEV_SPEED_FACTOR);
+                        addTvHitScore(finalCornerBonus);
+
+                        cornerHitData.push({ x: cornerX, y: cornerY, boxId: box.id, bonusAmount: finalCornerBonus });
                     }
-                    else { // Regular wall hit
-                        const wallHitAmount = tvState.hitValue;
-                        addTvHitScore(wallHitAmount); // Add score before effects
+                    else {
+                        let baseWallHitAmount = tvState.hitValue;
+
+                        const cornersSuckLevel = globalState.metaLevels.cornersSuckBonus;
+                        let cornersSuckMultiplier = 1.0;
+                        if (cornersSuckLevel > 0 && tvState.lastCornerHitTimestamp) {
+                            const elapsedMs = Date.now() - tvState.lastCornerHitTimestamp;
+                            const bonusRatio = Math.min(
+                                CORNERS_SUCK_MAX_MULTIPLIER - 1,
+                                (elapsedMs / CORNERS_SUCK_TIME_SCALE_FACTOR) * (cornersSuckLevel * CORNERS_SUCK_LEVEL_SCALE_FACTOR)
+                            );
+                            cornersSuckMultiplier = 1 + bonusRatio;
+                            baseWallHitAmount *= cornersSuckMultiplier;
+                        }
+
+                        const finalWallHitAmount = Math.ceil(baseWallHitAmount * globalState.synergyBonus * DEV_SPEED_FACTOR);
+                        addTvHitScore(finalWallHitAmount);
+
                         let popupX = box.x + effectiveBoxWidth / 2;
                         let popupY = box.y + effectiveBoxHeight / 2;
                         if (hitSide === 'left') popupX = effectiveBoxWidth * 0.5; else if (hitSide === 'right') popupX = screenWidth - effectiveBoxWidth * 0.5;
                         if (hitSide === 'top') popupY = effectiveBoxHeight * 0.5; else if (hitSide === 'bottom') popupY = screenHeight - effectiveBoxHeight * 0.5;
-                        wallHitData.push({ x: popupX, y: popupY, amount: wallHitAmount });
+
+                        wallHitData.push({ x: popupX, y: popupY, amount: finalWallHitAmount });
                     }
                 }
-                // Update box velocity and clamp position
                 box.vx = boxVX; box.vy = boxVY;
                 box.x = Math.max(0, Math.min(box.x, screenWidth - effectiveBoxWidth));
                 box.y = Math.max(0, Math.min(box.y, screenHeight - effectiveBoxHeight));
             });
 
-            // Box-on-box collision (AABB)
+            // Box-on-box collision
             for (let i = 0; i < tvState.boxes.length; i++) {
-                 if (!tvState.boxes[i].element) continue; // Skip if no element
+                 if (!tvState.boxes[i].element) continue;
                  for (let j = i + 1; j < tvState.boxes.length; j++) {
-                    if (!tvState.boxes[j].element) continue; // Skip if no element
+                    if (!tvState.boxes[j].element) continue;
 
                     const b1 = tvState.boxes[i]; const b2 = tvState.boxes[j];
                     const b1CenterX = b1.x + effectiveBoxWidth / 2; const b1CenterY = b1.y + effectiveBoxHeight / 2;
@@ -793,24 +792,21 @@
                     const overlapX = effectiveBoxWidth - Math.abs(dx);
                     const overlapY = effectiveBoxHeight - Math.abs(dy);
 
-                    if (overlapX > 0 && overlapY > 0) { // Collision
+                    if (overlapX > 0 && overlapY > 0) {
                         const collisionKey = getBoxCollisionKey(b1.id, b2.id);
                         const lastCollisionTime = boxCollisionTimers[collisionKey] || 0;
-                        // Use performance.now() timestamp for collision cooldown
                         if (timestamp - lastCollisionTime < BOX_COLLISION_COOLDOWN_MS) continue;
                         boxCollisionTimers[collisionKey] = timestamp;
 
-                        // Simplified separation and velocity exchange
-                        if (overlapX < overlapY) { // Horizontal resolution
+                        if (overlapX < overlapY) {
                             const separationAmount = overlapX * 0.5 + BOX_COLLISION_SEPARATION_BUFFER; const sign = dx < 0 ? -1 : 1;
                             b1.x -= separationAmount * sign; b2.x += separationAmount * sign;
                             const v1x = b1.vx; b1.vx = b2.vx * COLLISION_ENERGY_LOSS; b2.vx = v1x * COLLISION_ENERGY_LOSS;
-                        } else { // Vertical resolution
+                        } else {
                             const separationAmount = overlapY * 0.5 + BOX_COLLISION_SEPARATION_BUFFER; const sign = dy < 0 ? -1 : 1;
                             b1.y -= separationAmount * sign; b2.y += separationAmount * sign;
                             const v1y = b1.vy; b1.vy = b2.vy * COLLISION_ENERGY_LOSS; b2.vy = v1y * COLLISION_ENERGY_LOSS;
                         }
-                        // Clamp positions after separation
                         b1.x = Math.max(0, Math.min(b1.x, screenWidth - effectiveBoxWidth)); b1.y = Math.max(0, Math.min(b1.y, screenHeight - effectiveBoxHeight));
                         b2.x = Math.max(0, Math.min(b2.x, screenWidth - effectiveBoxWidth)); b2.y = Math.max(0, Math.min(b2.y, screenHeight - effectiveBoxHeight));
 
@@ -819,20 +815,29 @@
                 }
             }
 
-            // --- Process Hit Effects for this Frame ---
-            const synergy = globalState.synergyBonus;
-            if (wallHitData.length > 0) { wallHitData.forEach(hit => { showFloatText(tvState, `+${formatScore(Math.ceil(hit.amount * synergy * DEV_SPEED_FACTOR))}`, hit.x, hit.y, 'wall'); }); }
-            if (cornerHitData.length > 0) { cornerHitData.forEach(hit => { addTvHitScore(hit.bonusAmount); createSparkParticles(tvState, hit.x, hit.y); showFloatText(tvState, `CORNER HIT!\n+${formatScore(Math.ceil(hit.bonusAmount * synergy * DEV_SPEED_FACTOR))}`, tvState.screenWidth/2, tvState.screenHeight/2, 'corner'); }); }
+            // Process Hit Effects
+            if (wallHitData.length > 0) {
+                 wallHitData.forEach(hit => {
+                    showFloatText(tvState, `+${formatScore(hit.amount)}`, hit.x, hit.y, 'wall');
+                 });
+            }
+            if (cornerHitData.length > 0) {
+                cornerHitData.forEach(hit => {
+                    createSparkParticles(tvState, hit.x, hit.y);
+                    showFloatText(tvState, `CORNER HIT!\n+${formatScore(hit.bonusAmount)}`, tvState.screenWidth/2, tvState.screenHeight/2, 'corner');
+                });
+            }
             if (boxCollisionsThisFrame.length > 0) {
                 let collisionValue = tvState.boxCollisionValue;
-                let totalCollisionBonus = boxCollisionsThisFrame.length * collisionValue;
+                let finalCollisionValue = Math.ceil(collisionValue * globalState.synergyBonus * DEV_SPEED_FACTOR);
+                let totalCollisionBonus = boxCollisionsThisFrame.length * finalCollisionValue;
                 addTvHitScore(totalCollisionBonus);
                 boxCollisionsThisFrame.forEach(hit => {
-                    showFloatText(tvState, `+${formatScore(Math.ceil(collisionValue * synergy * DEV_SPEED_FACTOR))}`, hit.x, hit.y, 'collision');
+                    showFloatText(tvState, `+${formatScore(finalCollisionValue)}`, hit.x, hit.y, 'collision');
                 });
             }
 
-            // --- Update Element Positions ---
+            // Update Element Positions
             tvState.boxes.forEach(box => {
                 if (box.element) {
                      box.element.style.transform = `translate(${box.x}px, ${box.y}px)`;
@@ -841,14 +846,20 @@
         }
 
         // --- Scoring & Stats ---
-        function addTvHitScore(amount) { if (amount <= 0 || isNaN(amount)) return; const amountWithSynergy = amount * globalState.synergyBonus; const effectiveGain = Math.ceil(amountWithSynergy * DEV_SPEED_FACTOR); if (effectiveGain <= 0) return; globalState.totalSessionHits += effectiveGain; globalState.lifetimeSessionHits += effectiveGain; }
+        function addTvHitScore(finalAmount) {
+            if (finalAmount <= 0 || isNaN(finalAmount)) return;
+            const effectiveGain = Math.ceil(finalAmount);
+            if (effectiveGain <= 0) return;
+            globalState.totalSessionHits += effectiveGain;
+            globalState.lifetimeSessionHits += effectiveGain;
+        }
         function updateModalTvStats(tvState) { if (!modalTvStats || !tvState) return; const currentMaxBoxes = globalState.maxBoxesPerTv; modalTvStats.textContent = `TV #${tvState.id} | Logos: ${tvState.boxes.length}/${currentMaxBoxes}`; }
         function updateTotalHitsDisplay() { if (totalHitsDisplay) { totalHitsDisplay.textContent = `Hits: ${formatScore(globalState.totalSessionHits)}`; } }
         function updateTotalCornerHitsDisplay() { if (totalCornerHitsDisplay) { totalCornerHitsDisplay.textContent = `Corners: ${formatScore(globalState.totalCornerHits)}`; } }
 
         // --- Effects & Feedback ---
         function createSparkParticles(tvState, cornerX, cornerY) { if (!tvState.elements || !tvState.elements.screen) return; const screenElement = tvState.elements.screen; const particleCount = 12; const particleLifespan = 650; const particleSpread = tvState.screenWidth * 0.18; for (let i = 0; i < particleCount; i++) { const p = document.createElement('div'); p.classList.add('spark-particle'); p.style.left = `${cornerX}px`; p.style.top = `${cornerY}px`; screenElement.appendChild(p); const ang = Math.random()*Math.PI*2; const dist = Math.random()*particleSpread; let dX=Math.cos(ang); let dY=Math.sin(ang); if(cornerX<tvState.screenWidth/2) dX=Math.abs(dX); else dX=-Math.abs(dX); if(cornerY<tvState.screenHeight/2) dY=Math.abs(dY); else dY=-Math.abs(dY); const tX=dX*dist; const tY=dY*dist; requestAnimationFrame(()=>{p.style.transform=`translate(${tX}px, ${tY}px) scale(0.5)`; p.style.opacity=0; }); setTimeout(()=>{ p.remove(); }, particleLifespan); } }
-        function showNotification(message) { if (!notificationElement) return; notificationElement.textContent = message; notificationElement.className = 'show'; if (notificationElement.timer) clearTimeout(notificationElement.timer); notificationElement.timer = setTimeout(() => { notificationElement.className = ''; notificationElement.timer = null; }, 2800); } // Slightly longer duration
+        function showNotification(message) { if (!notificationElement) return; notificationElement.textContent = message; notificationElement.className = 'show'; if (notificationElement.timer) clearTimeout(notificationElement.timer); notificationElement.timer = setTimeout(() => { notificationElement.className = ''; notificationElement.timer = null; }, 2800); }
         function showFloatText(tvState, text, x, y, type = 'corner' | 'collision' | 'wall') { if (!tvState.elements || !tvState.elements.screen) return; const screenElement = tvState.elements.screen; const textElement = document.createElement('div'); textElement.classList.add('float-text'); let textClass = ''; let duration = 1000; switch(type) { case 'corner': textClass = 'corner-hit-text'; duration = 1300; break; case 'collision': textClass = 'collision-text'; duration = 900; textElement.style.left = `${x}px`; textElement.style.top = `${y}px`; break; case 'wall': textClass = 'wall-hit-text'; duration = 800; textElement.style.left = `${x}px`; textElement.style.top = `${y}px`; break; default: return; } textElement.classList.add(textClass); textElement.textContent = text; screenElement.appendChild(textElement); setTimeout(() => { if (textElement.parentNode) textElement.remove(); }, duration); }
 
         // --- Glow Logic (Controls Power Light) ---
@@ -867,13 +878,12 @@
                  let canPurchaseCheck = typeof upgrade.canPurchase === 'function' ? upgrade.canPurchase(tvState, level) : true;
                  if (!canPurchaseCheck) continue;
 
-                 // Check cost of ONLY the next level for glow affordability
                  const cost = calculateCost(upgrade.baseCost, level, upgrade.costFactor, tvState.index);
                  if (currentHits >= cost) {
-                     return true; // Found at least one affordable single upgrade
+                     return true;
                  }
              }
-             return false; // No affordable single upgrades found
+             return false;
         }
         function updateTvGlow(tvIndex) {
             const tvState = globalState.tvStates[tvIndex];
@@ -889,27 +899,44 @@
 
         // --- Upgrade Definitions ---
         const tvUpgrades = [
-             { id: 'hitValue', name: 'Hit Value', baseCost: 10, costFactor: 1.45, getLevel: (tv) => tv.upgrades.hitValue, applyEffect: (tv) => { tv.upgrades.hitValue++; }, getDescription: (tv, l) => `Lv ${l}: +Hit Value` },
-             { id: 'speed', name: 'Speed', baseCost: 40, costFactor: 1.65, maxLevel: 25, getLevel: (tv) => tv.upgrades.speed, applyEffect: (tv) => { tv.upgrades.speed++; }, getDescription: (tv, l, maxed) => maxed ? `Max Speed (Lv ${l})` : `Lv ${l}: +Speed` },
-             { id: 'cornerBonusFlat', name: 'Corner Flat Bonus', baseCost: 60, costFactor: 1.75, getLevel: (tv) => tv.upgrades.cornerBonusFlat, applyEffect: (tv) => { tv.upgrades.cornerBonusFlat++; }, getDescription: (tv, l) => `Lv ${l}: +Corner Bonus` },
-             { id: 'cornerBonusPercent', name: 'Corner % Bonus', baseCost: 800, costFactor: 2.3, getLevel: (tv) => tv.upgrades.cornerBonusPercent, applyEffect: (tv) => { tv.upgrades.cornerBonusPercent++; }, getDescription: (tv, l) => `Lv ${l}: +${(deriveTvCornerPercentBonus(tv,l+1)*100).toFixed(4)}% CB<br>(Global Hits)` },
+             // --- START: TV Upgrade Description Changes ---
+             { id: 'hitValue', name: 'Hit Value', baseCost: 10, costFactor: 1.45, getLevel: (tv) => tv.upgrades.hitValue, applyEffect: (tv) => { tv.upgrades.hitValue++; },
+               getDescription: (tv, l) => `<strong>More Hits Per Hit</strong><br>Lv ${l}: +Base Hit Value` },
+             { id: 'speed', name: 'Speed', baseCost: 40, costFactor: 1.65, maxLevel: 25, getLevel: (tv) => tv.upgrades.speed, applyEffect: (tv) => { tv.upgrades.speed++; },
+               getDescription: (tv, l, maxed) => `<strong>Gotta Go Fast</strong><br>${maxed ? `Max Speed (Lv ${l})` : `Lv ${l}: +Logo Speed`}` },
+             { id: 'cornerBonusFlat', name: 'Corner Flat Bonus', baseCost: 60, costFactor: 1.75, getLevel: (tv) => tv.upgrades.cornerBonusFlat, applyEffect: (tv) => { tv.upgrades.cornerBonusFlat++; },
+               getDescription: (tv, l) => `<strong>Corners Rule</strong><br>Lv ${l}: +Flat Corner Bonus` },
+             { id: 'cornerBonusPercent', name: 'Corner % Bonus', baseCost: 800, costFactor: 2.3, getLevel: (tv) => tv.upgrades.cornerBonusPercent, applyEffect: (tv) => { tv.upgrades.cornerBonusPercent++; },
+               getDescription: (tv, l) => `<strong>Scaling Corners</strong><br>Lv ${l}: +${(deriveTvCornerPercentBonus(tv,l+1)*100).toFixed(4)}% Corner Bonus from lifetime hits`
+               },
              { id: 'multiBox', name: 'Add Logo', baseCost: 300, costFactor: 3.5,
                 getMaxLevel: (tv) => globalState.maxBoxesPerTv, getLevel: (tv) => tv.boxes.length,
                 applyEffect: (tv, tvIndex, count = 1) => { let added = 0; for (let i = 0; i < count; i++) { if(addBoxToTv(tvIndex)) added++; else break; } if (added < count && count > 1 && tv.boxes.length >= globalState.maxBoxesPerTv) showNotification("Max logos reached!"); return added > 0; },
-                canPurchase: (tv, levelToCheck) => (levelToCheck ?? tv.boxes.length) < globalState.maxBoxesPerTv, // Check against global max
-                getDescription: (tv, l, maxed) => maxed ? `Max Logos (${tv.boxes.length})` : `Add Logo (${l+1}/${globalState.maxBoxesPerTv})` },
-             { id: 'boxCollisionValue', name: 'Collision Hits', baseCost: 1500, costFactor: 1.95, getLevel: (tv) => tv.upgrades.boxCollisionValue, applyEffect: (tv) => { tv.upgrades.boxCollisionValue++; }, getDescription: (tv, l) => `Lv ${l}: +Collision Hits` },
+                canPurchase: (tv, levelToCheck) => (levelToCheck ?? tv.boxes.length) < globalState.maxBoxesPerTv,
+                getDescription: (tv, l, maxed) => `<strong>More Logos!</strong><br>${maxed ? `Max Logos (${tv.boxes.length})` : `Add Logo (${l+1}/${globalState.maxBoxesPerTv})`}` },
+             { id: 'boxCollisionValue', name: 'Collision Hits', baseCost: 1500, costFactor: 1.95, getLevel: (tv) => tv.upgrades.boxCollisionValue, applyEffect: (tv) => { tv.upgrades.boxCollisionValue++; },
+               getDescription: (tv, l) => `<strong>Bumper Logos</strong><br>Lv ${l}: +Collision Hits` },
+             // --- END: TV Upgrade Description Changes ---
         ];
         const metaUpgrades = [
-             { id: 'metaFragmentGain', name: 'Fragment Gain', baseCost: 3, costFactor: 2.2, getLevel: () => globalState.metaLevels.fragmentGain, applyEffect: () => { globalState.metaLevels.fragmentGain++; }, getDescription: (gs, l, c) => `Lv ${l}: +${((deriveMetaFragmentMult(l+1)-1)*100).toFixed(0)}% Fragments<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
-             { id: 'metaAddTv', name: 'Add New TV', baseCost: 5, costFactor: 4.5, getLevel: () => globalState.tvStates.length, applyEffect: () => { addTv(); }, canPurchase: () => true, // Always purchasable
-               getDescription: (gs, l, c) => `Add TV #${l+1}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
-             { id: 'metaBaseSpeed', name: 'Base Speed', baseCost: 10, costFactor: 2.8, maxLevel: 15, getLevel: () => globalState.metaLevels.baseSpeed, applyEffect: () => { globalState.metaLevels.baseSpeed++; updateAllTvsPostMeta(); }, getDescription: (gs, l, c, maxed) => maxed ? `Max Base Speed (Lv ${l})`:`Lv ${l}: +Speed All TVs<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
+             // --- START: Meta Upgrade Description Changes ---
+             { id: 'metaStaticChargeGain', name: 'Static Charge Gain', baseCost: 3, costFactor: 2.2, getLevel: () => globalState.metaLevels.staticChargeGain, applyEffect: () => { globalState.metaLevels.staticChargeGain++; },
+               getDescription: (gs, l, c) => `<strong>Static Charge Boost</strong><br>Lv ${l}: +${((deriveMetaStaticChargeMult(l+1)-1)*100).toFixed(0)}% Static Charges<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
+             { id: 'metaAddTv', name: 'Add New TV', baseCost: 5, costFactor: 4.5, getLevel: () => globalState.tvStates.length, applyEffect: () => { addTv(); }, canPurchase: () => true,
+               getDescription: (gs, l, c) => `<strong>New Channel</strong><br>Unlock TV #${l+1}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
+             { id: 'metaBaseSpeed', name: 'Base Speed', baseCost: 10, costFactor: 2.8, maxLevel: 15, getLevel: () => globalState.metaLevels.baseSpeed, applyEffect: () => { globalState.metaLevels.baseSpeed++; updateAllTvsPostMeta(); },
+               getDescription: (gs, l, c, maxed) => `<strong>System Speed</strong><br>${maxed ? `Max Base Speed (Lv ${l})` : `Lv ${l}: +Base Speed All TVs`}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
              { id: 'metaBaseMaxBoxes', name: 'Global Capacity', baseCost: 15, costFactor: 3.5, maxLevel: MAX_BOXES_PER_TV,
-                getLevel: () => globalState.metaLevels.baseMaxBoxes, applyEffect: () => { globalState.metaLevels.baseMaxBoxes++; updateAllTvsPostMeta(); updateMetaUpgradeButtonsIfVisible(); updateSelectedTvUpgradeButtons(); }, // Update TV buttons if logo limit changed
-                getDescription: (gs, l, c, maxed) => maxed ? `Max Global Cap (${gs.maxBoxesPerTv})` : `Lv ${l}: Global Max Logos: ${deriveMetaBaseMaxBoxes(l+1)}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
+                getLevel: () => globalState.metaLevels.baseMaxBoxes, applyEffect: () => { globalState.metaLevels.baseMaxBoxes++; updateAllTvsPostMeta(); updateMetaUpgradeButtonsIfVisible(); updateSelectedTvUpgradeButtons(); },
+                getDescription: (gs, l, c, maxed) => `<strong>More Room</strong><br>${maxed ? `Max Global Cap (${gs.maxBoxesPerTv})` : `Lv ${l}: +Global Max Logos (${deriveMetaBaseMaxBoxes(l+1)})`}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
              { id: 'metaTvSynergyBonus', name: 'TV Synergy', baseCost: 50, costFactor: 2.5, getLevel: () => globalState.metaLevels.tvSynergyBonus, applyEffect: () => { globalState.metaLevels.tvSynergyBonus++; recalculateGlobalSynergy(); updateMetaUpgradeButtonsIfVisible(); },
-               getDescription: (gs, l, c) => { const nextLevel = l + 1; const nextPerTvBonus = deriveSynergyBonusPerTv(nextLevel); const currentNumTvs = gs.tvStates.length; const nextTotalBonus = 1.0 + currentNumTvs * nextPerTvBonus; return `Lv ${l}: All Hits x${globalState.synergyBonus.toFixed(3)}<br>(Next: +${(nextPerTvBonus*100).toFixed(2)}% per TV)<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>`; } },
+               getDescription: (gs, l, c) => { const nextLevel = l + 1; const nextPerTvBonus = deriveSynergyBonusPerTv(nextLevel); return `<strong>Teamwork!</strong><br>Lv ${l}: All Hits x${globalState.synergyBonus.toFixed(3)}<br>(+${(nextPerTvBonus*100).toFixed(2)}% per TV Next)<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>`; } },
+             { id: 'metaCornersSuck', name: 'Corners Suck', baseCost: 100, costFactor: 2.9,
+               getLevel: () => globalState.metaLevels.cornersSuckBonus,
+               applyEffect: () => { globalState.metaLevels.cornersSuckBonus++; },
+               getDescription: (gs, l, c) => { const maxBonusPercent = (CORNERS_SUCK_MAX_MULTIPLIER - 1) * 100; return `<strong>Corners Suck</strong><br>Lv ${l}: +Wall hits value over time (Max +${maxBonusPercent.toFixed(0)}%)<br>Resets on TV corner hit<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>`; }
+             },
+             // --- END: Meta Upgrade Description Changes ---
         ];
 
         // --- Upgrade Calculation Functions ---
@@ -919,71 +946,69 @@
         function deriveTvCornerPercentBonus(tvState, level) { return level * 0.00001; }
         function deriveTvCollisionBonus(tvState, level) { return Math.max(0, Math.floor(2 + level * 0.5 + Math.pow(level, 1.2))); }
         function getCurrentTvSpeed(tvState) { return BASE_SPEED_CONSTANT * deriveTvSpeedFactor(tvState, tvState.upgrades.speed); }
-        function deriveMetaFragmentMult(level) { return 1 + level * 0.07; }
+        function deriveMetaStaticChargeMult(level) { return 1 + level * 0.07; }
         function deriveMetaBaseSpeedFactor(level) { return 1 + level * 0.03; }
-        function deriveMetaBaseMaxBoxes(level) { return 2 + level; } // Starts at 2 logos (+1 per level)
+        function deriveMetaBaseMaxBoxes(level) { return 2 + level; }
         function deriveSynergyBonusPerTv(level) { return level > 0 ? (level * 0.005) : 0; }
         function deriveSynergyBonus(level) { const perTvBonus = deriveSynergyBonusPerTv(level); const numTvs = globalState?.tvStates?.length ?? 0; return 1.0 + (numTvs * perTvBonus); }
 
         // --- Apply Upgrades ---
         function recalculateDerivedTvState(tvState) { tvState.hitValue = deriveTvHitValue(tvState, tvState.upgrades.hitValue); tvState.cornerHitBaseBonus = deriveTvCornerFlatBonus(tvState, tvState.upgrades.cornerBonusFlat); tvState.cornerHitPercentBonus = deriveTvCornerPercentBonus(tvState, tvState.upgrades.cornerBonusPercent); tvState.boxCollisionValue = deriveTvCollisionBonus(tvState, tvState.upgrades.boxCollisionValue); }
         function recalculateGlobalSynergy() { globalState.synergyBonus = deriveSynergyBonus(globalState.metaLevels.tvSynergyBonus); }
-        function applyMetaUpgradesToTv(tvState) { tvState.baseSpeedFactorMeta = deriveMetaBaseSpeedFactor(globalState.metaLevels.baseSpeed); recalculateDerivedTvState(tvState); resizeTvScreen(tvState); /* Resize might depend on derived state */ }
+        function applyMetaUpgradesToTv(tvState) { tvState.baseSpeedFactorMeta = deriveMetaBaseSpeedFactor(globalState.metaLevels.baseSpeed); recalculateDerivedTvState(tvState); resizeTvScreen(tvState); }
         function updateAllTvsPostMeta() { globalState.maxBoxesPerTv = deriveMetaBaseMaxBoxes(globalState.metaLevels.baseMaxBoxes); globalState.tvStates.forEach(tv => { applyMetaUpgradesToTv(tv); checkAndAdjustBoxPositions(tv.index); }); recalculateGlobalSynergy(); updateAllTvGlows(); }
 
         // --- Upgrade UI & Modal Logic ---
         function openUpgradeModal(tvIndex = -1) {
-            selectedTvIndex = tvIndex; modalUpgradesContainer.innerHTML = ''; modalRebootContainer.innerHTML = ''; modalBuyAmountContainer.innerHTML = ''; // Clear previous content
+            selectedTvIndex = tvIndex; modalUpgradesContainer.innerHTML = ''; modalRebootContainer.innerHTML = ''; modalBuyAmountContainer.innerHTML = '';
 
-            if (tvIndex !== -1) { // TV Specific Modal
-                const tvState = globalState.tvStates[tvIndex]; if (!tvState) return; // Safety check
+            if (tvIndex !== -1) {
+                const tvState = globalState.tvStates[tvIndex]; if (!tvState) return;
                 modalTitle.textContent = `TV #${tvState.id} Upgrades`;
-                updateModalTvStats(tvState); // Show TV logo count
-                renderBuyAmountButtons(); // Show buy amount selectors
-                renderUpgradeSection(tvUpgrades, modalUpgradesContainer, 'hit', tvIndex); // Render TV upgrades
-            } else { // Meta Modal
+                updateModalTvStats(tvState);
+                renderBuyAmountButtons();
+                renderUpgradeSection(tvUpgrades, modalUpgradesContainer, 'hit', tvIndex);
+            } else {
                 modalTitle.textContent = 'Meta Upgrades & Reboot';
-                modalTvStats.textContent = `Fragments: ${formatScore(globalState.systemFragments)}`; // Show Fragment count
-                renderUpgradeSection(metaUpgrades, modalUpgradesContainer, 'meta'); // Render Meta upgrades
-                // Add Reboot section if applicable
-                const potentialGain = calculateFragmentGain(globalState.lifetimeSessionHits);
-                if (potentialGain > 0 || globalState.hasRebootedOnce) { // Show if potential gain > 0 OR already rebooted once
+                modalTvStats.textContent = `Static Charges: ${formatScore(globalState.systemStaticCharges)}`;
+                renderUpgradeSection(metaUpgrades, modalUpgradesContainer, 'meta');
+                const potentialGain = calculateStaticChargeGain(globalState.lifetimeSessionHits);
+                if (potentialGain > 0 || globalState.hasRebootedOnce) {
                     const rebootTemplate = document.getElementById('reboot-section-template');
                     if (rebootTemplate) {
                         const clonedReboot = rebootTemplate.firstElementChild.cloneNode(true);
                         const rebootBtn = clonedReboot.querySelector('#reboot-button');
                         if (rebootBtn) { rebootBtn.onclick = executeReboot; }
                         modalRebootContainer.appendChild(clonedReboot);
-                        updateRebootPreviewIfVisible(); // Set initial state
+                        updateRebootPreviewIfVisible();
                     } else { console.error("Reboot template not found!"); }
                 }
             }
-            upgradeModal.classList.add('show'); // Display the modal
+            upgradeModal.classList.add('show');
         }
-        function closeUpgradeModal() { upgradeModal.classList.remove('show'); selectedTvIndex = -1; updateAllTvGlows(); /* Update glows when closing */ }
+        function closeUpgradeModal() { upgradeModal.classList.remove('show'); selectedTvIndex = -1; updateAllTvGlows(); }
         function renderBuyAmountButtons() {
             modalBuyAmountContainer.innerHTML = ''; const amounts = [1, 10, 100, 'max'];
             amounts.forEach(amount => {
                 const btn = document.createElement('button'); btn.classList.add('buy-amount-button'); btn.textContent = `${amount === 'max' ? 'Max' : 'x'+amount}`; btn.dataset.amount = amount;
-                if (selectedBuyAmount === amount || (selectedBuyAmount === Infinity && amount === 'max')) { btn.classList.add('active'); } // Highlight current selection
+                if (selectedBuyAmount === amount || (selectedBuyAmount === Infinity && amount === 'max')) { btn.classList.add('active'); }
                 btn.onclick = () => setBuyAmount(amount); modalBuyAmountContainer.appendChild(btn);
             });
         }
         function setBuyAmount(amount) {
-            selectedBuyAmount = (amount === 'max') ? Infinity : parseInt(amount); // Use Infinity for 'max'
-            globalState.selectedBuyAmount = (amount === 'max') ? 'max' : selectedBuyAmount; // Save preference
+            selectedBuyAmount = (amount === 'max') ? Infinity : parseInt(amount);
+            globalState.selectedBuyAmount = (amount === 'max') ? 'max' : selectedBuyAmount;
             const buttons = modalBuyAmountContainer.querySelectorAll('.buy-amount-button');
             buttons.forEach(btn => { const btnAmount = btn.dataset.amount; const isActive = (selectedBuyAmount === Infinity && btnAmount === 'max') || (selectedBuyAmount === parseInt(btnAmount)); btn.classList.toggle('active', isActive); });
-            updateSelectedTvUpgradeButtons(); // Update TV upgrade button costs/levels immediately
+            updateSelectedTvUpgradeButtons();
         }
 
         function calculateBulkCostAndLevels(upgrade, tvState, currentScore, tvIndex) {
             const amountToTry = selectedBuyAmount;
             const currentLevel = upgrade.getLevel(tvState);
             let totalCost = 0; let levelsBought = 0; let maxLevelReached = false;
-            let nextLevelCost = 0; // Cost of the very next level
+            let nextLevelCost = 0;
 
-            // Determine max level for this upgrade
             let maxLevel;
             if (upgrade.id === 'multiBox') maxLevel = globalState.maxBoxesPerTv;
             else if (typeof upgrade.getMaxLevel === 'function') maxLevel = upgrade.getMaxLevel(tvState);
@@ -995,49 +1020,43 @@
                 return { levels: 0, totalCost: 0, affordable: false, isMaxLevel: true, nextLevelCost: 0 };
             }
 
-            // Calculate cost of the single next level regardless of affordability
             nextLevelCost = calculateCost(upgrade.baseCost, currentLevel, upgrade.costFactor, tvIndex);
 
-            // Calculate for bulk buy
             const maxIterations = (amountToTry === Infinity) ? MAX_BULK_BUY_CHECK : amountToTry;
-            const flooredScore = Math.floor(currentScore); // Use floored score for comparisons
+            const flooredScore = Math.floor(currentScore);
 
             for (let i = 0; i < maxIterations; i++) {
-                const levelToCheck = currentLevel + levelsBought; // Check next level from current state
+                const levelToCheck = currentLevel + levelsBought;
 
-                // Re-check max level condition inside loop
                 if (maxLevel !== undefined && levelToCheck >= maxLevel) { maxLevelReached = true; break; }
-                // Re-check canPurchase condition inside loop
                 if (!(typeof upgrade.canPurchase === 'function' ? upgrade.canPurchase(tvState, levelToCheck) : true)) { maxLevelReached = true; break; }
 
                 const costForThisLevel = calculateCost(upgrade.baseCost, levelToCheck, upgrade.costFactor, tvIndex);
-                if (flooredScore >= totalCost + costForThisLevel) { // Compare against affordable total
+                if (flooredScore >= totalCost + costForThisLevel) {
                     totalCost += costForThisLevel;
                     levelsBought++;
                 } else {
-                    // Can't afford the next level in the bulk buy
                     break;
                 }
             }
 
-            const affordable = levelsBought > 0; // Affordable only if >0 levels bought
+            const affordable = levelsBought > 0;
 
             return {
                 levels: levelsBought,
-                totalCost: totalCost, // Cost for the 'levelsBought' levels
+                totalCost: totalCost,
                 affordable: affordable,
-                isMaxLevel: isCurrentlyMaxed || (maxLevelReached && levelsBought === 0), // Is maxed check refined
-                nextLevelCost: nextLevelCost // Cost of the single next level from current
+                isMaxLevel: isCurrentlyMaxed || (maxLevelReached && levelsBought === 0),
+                nextLevelCost: nextLevelCost
             };
         }
 
-        // Renders the initial set of upgrade buttons
         function renderUpgradeSection(upgrades, container, currencyType, tvIndex = -1) {
-             if (!container) return; container.innerHTML = ''; // Clear previous buttons
+             if (!container) return; container.innerHTML = '';
              const isTvModal = currencyType === 'hit' && tvIndex !== -1;
              const tvState = isTvModal ? globalState.tvStates[tvIndex] : null;
              const stateForLevel = tvState ?? globalState;
-             const currentScore = currencyType === 'hit' ? globalState.totalSessionHits : globalState.systemFragments;
+             const currentScore = currencyType === 'hit' ? globalState.totalSessionHits : globalState.systemStaticCharges;
 
              upgrades.forEach(upgrade => {
                  const currentLevel = upgrade.getLevel(stateForLevel);
@@ -1045,11 +1064,10 @@
                  let descriptionText = ''; let currencyClass = currencyType;
                  let costToShow = 0;
                  let levelText = '';
-                 let isCurrentlyMaxed = false; // Default to not maxed
+                 let isCurrentlyMaxed = false;
 
-                 // Check if currently maxed out
                  let maxLevelCheck;
-                 if (upgrade.id === 'multiBox' && tvState) maxLevelCheck = globalState.maxBoxesPerTv; // Use global for multiBox
+                 if (upgrade.id === 'multiBox' && tvState) maxLevelCheck = globalState.maxBoxesPerTv;
                  else if (typeof upgrade.getMaxLevel === 'function') maxLevelCheck = upgrade.getMaxLevel(stateForLevel);
                  else maxLevelCheck = upgrade.maxLevel;
 
@@ -1058,57 +1076,56 @@
                      isCurrentlyMaxed = !upgrade.canPurchase(stateForLevel, currentLevel);
                  }
 
-
-                 if (isTvModal && tvState) { // TV Upgrades
+                 if (isTvModal && tvState) {
                      bulkInfo = calculateBulkCostAndLevels(upgrade, tvState, currentScore, tvIndex);
-                     isCurrentlyMaxed = bulkInfo.isMaxLevel; // Use result from calculation
+                     isCurrentlyMaxed = bulkInfo.isMaxLevel;
+                     // Pass isCurrentlyMaxed to getDescription for TV upgrades
                      descriptionText = upgrade.getDescription(tvState, currentLevel, isCurrentlyMaxed);
                      if (!isCurrentlyMaxed) {
-                         if (bulkInfo.affordable && bulkInfo.levels > 0) { // Ensure levels > 0 are affordable
+                         if (bulkInfo.affordable && bulkInfo.levels > 0) {
                              costToShow = bulkInfo.totalCost;
                              if (bulkInfo.levels > 1) levelText = ` (x${bulkInfo.levels})`;
                          } else {
-                             costToShow = bulkInfo.nextLevelCost; // Show cost of next single level if bulk is unaffordable
+                             costToShow = bulkInfo.nextLevelCost;
                          }
                      }
-                 } else { // Meta Upgrades
+                 } else {
                      const cost = calculateCost(upgrade.baseCost, currentLevel, upgrade.costFactor);
-                     costToShow = cost; // Meta always shows cost of next level
+                     costToShow = cost;
                      bulkInfo.affordable = currentScore >= cost && !isCurrentlyMaxed;
                      bulkInfo.isMaxLevel = isCurrentlyMaxed;
-                     descriptionText = upgrade.getDescription(globalState, currentLevel, cost, bulkInfo.isMaxLevel);
+                     // Pass cost and isCurrentlyMaxed to getDescription for meta upgrades
+                     descriptionText = upgrade.getDescription(globalState, currentLevel, cost, isCurrentlyMaxed);
                  }
 
-                 // Create Button Element
                  const btn = document.createElement('button');
                  btn.classList.add('upgrade-button');
                  btn.dataset.upgradeId = upgrade.id;
                  btn.dataset.currencyType = currencyType;
                  if (tvIndex >= 0) btn.dataset.tvIndex = tvIndex;
 
-                 // Set Button Content
                  btn.innerHTML = `<div class="upgrade-description">${descriptionText}</div>`;
-                 if (!isCurrentlyMaxed && !(currencyType === 'meta')) { // Add cost div only if not maxed AND not meta
+                 // Only add cost div for TV upgrades (meta upgrades have cost in description)
+                 if (!isCurrentlyMaxed && currencyType === 'hit') {
                      btn.innerHTML += `<div class="upgrade-cost ${currencyClass}">Cost: ${formatScore(costToShow)}${levelText}</div>`;
-                 } else if (isCurrentlyMaxed && !(currencyType === 'meta')) {
-                     // Optionally add a 'Maxed' text instead of cost
+                 } else if (isCurrentlyMaxed && currencyType === 'hit') {
+                     // Optionally indicate Maxed
                      // btn.innerHTML += `<div class="upgrade-cost ${currencyClass}">Maxed</div>`;
                  }
 
-                 btn.disabled = isCurrentlyMaxed || !bulkInfo.affordable; // Disable if maxed OR cannot afford
+                 btn.disabled = isCurrentlyMaxed || !bulkInfo.affordable;
                  btn.onclick = () => buyUpgrade(upgrade.id, currencyType, tvIndex);
                  container.appendChild(btn);
              });
         }
 
 
-        // Updates existing buttons in a section
         function updateUpgradeButtonsInSection(upgrades, container, currencyType, tvIndex = -1) {
             if (!container) return;
             const isTvModal = currencyType === 'hit' && tvIndex !== -1;
             const tvState = isTvModal ? globalState.tvStates[tvIndex] : null;
             const stateForLevel = tvState ?? globalState;
-            const currentScore = currencyType === 'hit' ? globalState.totalSessionHits : globalState.systemFragments;
+            const currentScore = currencyType === 'hit' ? globalState.totalSessionHits : globalState.systemStaticCharges;
 
             upgrades.forEach(upgrade => {
                 const btn = container.querySelector(`[data-upgrade-id="${upgrade.id}"]`);
@@ -1120,9 +1137,8 @@
                     let levelText = '';
                     let isCurrentlyMaxed = false;
 
-                    // Check max level condition
                     let maxLevelCheck;
-                    if (upgrade.id === 'multiBox' && tvState) maxLevelCheck = globalState.maxBoxesPerTv; // Use global for multiBox
+                    if (upgrade.id === 'multiBox' && tvState) maxLevelCheck = globalState.maxBoxesPerTv;
                     else if (typeof upgrade.getMaxLevel === 'function') maxLevelCheck = upgrade.getMaxLevel(stateForLevel);
                     else maxLevelCheck = upgrade.maxLevel;
 
@@ -1131,15 +1147,13 @@
                         isCurrentlyMaxed = !upgrade.canPurchase(stateForLevel, currentLevel);
                      }
 
-
                     const descDiv = btn.querySelector('.upgrade-description');
                     let costDiv = btn.querySelector('.upgrade-cost');
 
-                    // Calculate affordability and update content
-                    if (isTvModal && tvState) { // TV upgrade
+                    if (isTvModal && tvState) {
                         bulkInfo = calculateBulkCostAndLevels(upgrade, tvState, currentScore, tvIndex);
                         isCurrentlyMaxed = bulkInfo.isMaxLevel;
-                        descriptionText = upgrade.getDescription(tvState, currentLevel, isCurrentlyMaxed);
+                        descriptionText = upgrade.getDescription(tvState, currentLevel, isCurrentlyMaxed); // Pass maxed status
                         if (descDiv) descDiv.innerHTML = descriptionText;
 
                         if (!isCurrentlyMaxed) {
@@ -1157,20 +1171,23 @@
                             costDiv.innerHTML = `Cost: ${formatScore(costToShow)}${levelText}`;
                             costDiv.style.display = '';
                         } else {
-                            if (costDiv) costDiv.style.display = 'none';
+                             // If a cost div exists for a TV upgrade that is now maxed, hide it
+                             if (costDiv) costDiv.style.display = 'none';
                         }
 
-                    } else { // Meta upgrade
+                    } else {
                         const cost = calculateCost(upgrade.baseCost, currentLevel, upgrade.costFactor);
                         costToShow = cost;
                         bulkInfo.affordable = currentScore >= cost && !isCurrentlyMaxed;
                         bulkInfo.isMaxLevel = isCurrentlyMaxed;
-                        descriptionText = upgrade.getDescription(globalState, currentLevel, cost, bulkInfo.isMaxLevel);
+                        descriptionText = upgrade.getDescription(globalState, currentLevel, cost, isCurrentlyMaxed); // Pass cost & maxed status
                         if (descDiv) descDiv.innerHTML = descriptionText;
-                        if(costDiv && currencyType === 'meta') costDiv.style.display = 'none';
+                        // Meta upgrades have cost in description, so costDiv is not needed/managed here
+                        if (costDiv && currencyType === 'meta') {
+                            costDiv.style.display = 'none'; // Ensure meta cost div is hidden if it somehow exists
+                        }
                     }
 
-                    // Update button disabled state
                     btn.disabled = isCurrentlyMaxed || !bulkInfo.affordable;
                 }
             });
@@ -1182,33 +1199,30 @@
             const upgrade = upgrades.find(u => u.id === id); if (!upgrade) return;
 
             const isTvUpgrade = currencyType === 'hit' && tvIndex !== -1;
-            const amountToTry = isTvUpgrade ? selectedBuyAmount : 1; // Buy 1 for meta
+            const amountToTry = isTvUpgrade ? selectedBuyAmount : 1;
 
             const stateToModify = isTvUpgrade ? globalState.tvStates[tvIndex] : globalState;
             if (!stateToModify) { console.error("Invalid state for upgrade:", id, currencyType, tvIndex); return; }
 
-            const scoreRef = currencyType === 'hit' ? 'totalSessionHits' : 'systemFragments';
+            const scoreRef = currencyType === 'hit' ? 'totalSessionHits' : 'systemStaticCharges';
             const currentScore = globalState[scoreRef];
 
             let currentLevel = upgrade.getLevel(stateToModify);
             let totalCost = 0;
             let levelsToBuy = 0;
 
-            // Calculate how many levels can actually be bought
             const maxIterations = (amountToTry === Infinity) ? MAX_BULK_BUY_CHECK : amountToTry;
-            const flooredScore = Math.floor(currentScore); // Use floored score for comparisons
+            const flooredScore = Math.floor(currentScore);
 
             for (let i = 0; i < maxIterations; i++) {
                 const levelToCheck = currentLevel + levelsToBuy;
 
-                // Check max level
                 let maxLevel;
-                 if (upgrade.id === 'multiBox' && isTvUpgrade) maxLevel = globalState.maxBoxesPerTv; // Use global for multiBox
+                 if (upgrade.id === 'multiBox' && isTvUpgrade) maxLevel = globalState.maxBoxesPerTv;
                  else if (typeof upgrade.getMaxLevel === 'function') maxLevel = upgrade.getMaxLevel(stateToModify);
                  else maxLevel = upgrade.maxLevel;
                 if (maxLevel !== undefined && levelToCheck >= maxLevel) break;
 
-                // Check purchase condition
                 if (!(typeof upgrade.canPurchase === 'function' ? upgrade.canPurchase(stateToModify, levelToCheck) : true)) break;
 
                 const costForThisLevel = calculateCost(upgrade.baseCost, levelToCheck, upgrade.costFactor, tvIndex);
@@ -1222,14 +1236,12 @@
             }
 
 
-            // Execute purchase if affordable
             if (levelsToBuy > 0) {
                 globalState[scoreRef] -= totalCost;
 
-                // Apply the effect(s)
                 if (isTvUpgrade) {
                     if (upgrade.id === 'multiBox') {
-                        upgrade.applyEffect(stateToModify, tvIndex, levelsToBuy); // Special case for adding multiple boxes
+                        upgrade.applyEffect(stateToModify, tvIndex, levelsToBuy);
                     } else {
                          for(let k=0; k<levelsToBuy; k++) {
                              upgrade.applyEffect(stateToModify, tvIndex);
@@ -1239,28 +1251,25 @@
                     updateModalTvStats(stateToModify);
                     updateSelectedTvUpgradeButtons();
                     updateTvGlow(tvIndex);
-                } else { // Meta Upgrade purchase
-                     upgrade.applyEffect(stateToModify, tvIndex); // Apply effect once (levelsToBuy is always 1 here)
+                } else {
+                     upgrade.applyEffect(stateToModify, tvIndex);
                      if (upgrade.id === 'metaTvSynergyBonus' || upgrade.id === 'metaAddTv') recalculateGlobalSynergy();
                      if (upgrade.id === 'metaBaseMaxBoxes' || upgrade.id === 'metaBaseSpeed') updateAllTvsPostMeta();
                      if (upgrade.id === 'metaAddTv') checkMetaButtonVisibility();
                      if (upgrade.id === 'metaBaseMaxBoxes') {
-                         // If max boxes changed, we might need to update TV upgrade buttons if the modal is open
                          updateSelectedTvUpgradeButtons();
                      }
-                     modalTvStats.textContent = `Fragments: ${formatScore(globalState.systemFragments)}`;
+                     modalTvStats.textContent = `Static Charges: ${formatScore(globalState.systemStaticCharges)}`;
                      updateMetaUpgradeButtonsIfVisible();
                      updateRebootPreviewIfVisible();
                      updateAllTvGlows();
                 }
 
                 updateTotalHitsDisplay();
-                // Save game immediately after purchase
                 saveGame();
             } else {
                  const nextCost = calculateCost(upgrade.baseCost, currentLevel, upgrade.costFactor, tvIndex);
                  console.log(`Cannot afford ${amountToTry === Infinity ? 1 : amountToTry} level(s) of ${id}. Need ${formatScore(nextCost)}, have ${formatScore(currentScore)}`);
-                 // Optionally flash the button red or provide other feedback
             }
         }
 
@@ -1269,23 +1278,24 @@
         function updateMetaUpgradeButtonsIfVisible() { if (selectedTvIndex === -1 && upgradeModal.classList.contains('show')) { updateUpgradeButtonsInSection(metaUpgrades, modalUpgradesContainer, 'meta'); } }
 
         // --- Reboot Logic ---
-        function canCurrentlyReboot() { return globalState.systemFragments > 0 || globalState.hasRebootedOnce || calculateFragmentGain(globalState.lifetimeSessionHits) > 0; }
+        function canCurrentlyReboot() { return globalState.systemStaticCharges > 0 || globalState.hasRebootedOnce || calculateStaticChargeGain(globalState.lifetimeSessionHits) > 0; }
         function checkMetaButtonVisibility() { metaMenuButton.classList.toggle('show', canCurrentlyReboot()); }
-        function updateRebootPreviewIfVisible() { if (selectedTvIndex !== -1 || !upgradeModal.classList.contains('show')) return; const rebootSection = modalRebootContainer.querySelector('#reboot-section'); if (!rebootSection) return; const rebootGainPreview = rebootSection.querySelector('#reboot-gain-preview'); const rebootButton = rebootSection.querySelector('#reboot-button'); if (!rebootGainPreview || !rebootButton) return; const gain = calculateFragmentGain(globalState.lifetimeSessionHits); rebootGainPreview.textContent = `Gain ~${formatScore(gain)} Fragments (from ${formatScore(globalState.lifetimeSessionHits)} total Hits)`; rebootButton.disabled = gain <= 0; }
-        function calculateFragmentGain(totalLifetimeHits) { if (totalLifetimeHits < 5000) return 0; const metaMultiplier = deriveMetaFragmentMult(globalState.metaLevels.fragmentGain); const baseGain = Math.pow(totalLifetimeHits / 5000, 0.45) * 1.5; const logBonus = Math.log10(totalLifetimeHits / 5000 + 1) * 0.5; const gain = Math.floor((baseGain + logBonus) * metaMultiplier); return Math.max(0, gain); }
+        function updateRebootPreviewIfVisible() { if (selectedTvIndex !== -1 || !upgradeModal.classList.contains('show')) return; const rebootSection = modalRebootContainer.querySelector('#reboot-section'); if (!rebootSection) return; const rebootGainPreview = rebootSection.querySelector('#reboot-gain-preview'); const rebootButton = rebootSection.querySelector('#reboot-button'); if (!rebootGainPreview || !rebootButton) return; const gain = calculateStaticChargeGain(globalState.lifetimeSessionHits); rebootGainPreview.textContent = `Gain ~${formatScore(gain)} Static Charges (from ${formatScore(globalState.lifetimeSessionHits)} total Hits)`; rebootButton.disabled = gain <= 0; }
+        function calculateStaticChargeGain(totalLifetimeHits) { if (totalLifetimeHits < 5000) return 0; const metaMultiplier = deriveMetaStaticChargeMult(globalState.metaLevels.staticChargeGain); const baseGain = Math.pow(totalLifetimeHits / 5000, 0.45) * 1.5; const logBonus = Math.log10(totalLifetimeHits / 5000 + 1) * 0.5; const gain = Math.floor((baseGain + logBonus) * metaMultiplier); return Math.max(0, gain); }
         function executeReboot() {
-             const fragmentsGained = calculateFragmentGain(globalState.lifetimeSessionHits); if (fragmentsGained <= 0) { showNotification("Not enough lifetime Hits for fragments"); return; } if (!confirm(`Reboot: Gain ${formatScore(fragmentsGained)} Fragments?\n\nResets session Hits, Corner Hits & TV Upgrades.\nKeeps Fragments, Meta Upgrades & Unlocked TVs.`)) { return; } closeUpgradeModal(); showNotification(`Rebooted! +${formatScore(fragmentsGained)} Fragments`); globalState.systemFragments += fragmentsGained; globalState.hasRebootedOnce = true; globalState.totalSessionHits = 0; globalState.lifetimeSessionHits = 0; // Reset lifetime hits used for gain calculation
+             const staticChargesGained = calculateStaticChargeGain(globalState.lifetimeSessionHits); if (staticChargesGained <= 0) { showNotification("Not enough lifetime Hits for staticCharges"); return; } if (!confirm(`Reboot: Gain ${formatScore(staticChargesGained)} Static Charges?\n\nResets session Hits, Corner Hits & TV Upgrades.\nKeeps Static Charges, Meta Upgrades & Unlocked TVs.`)) { return; } closeUpgradeModal(); showNotification(`Rebooted! +${formatScore(staticChargesGained)} Static Charges`); globalState.systemStaticCharges += staticChargesGained; globalState.hasRebootedOnce = true; globalState.totalSessionHits = 0; globalState.lifetimeSessionHits = 0;
              globalState.totalCornerHits = 0;
              boxCollisionTimers = {};
-             globalState.tvStates.forEach((tvState, index) => { Object.keys(tvState.upgrades).forEach(key => { tvState.upgrades[key] = 0; }); // Reset upgrades
-                 clearTvScreenBoxes(index); // Remove old boxes visually and logically
-                 tvState.boxes = []; // Ensure boxes array is empty
-                 tvState.nextBoxId = 0; // Reset box ID counter for the TV
-                 recalculateDerivedTvState(tvState); // Reset derived stats
-                 applyMetaUpgradesToTv(tvState); // Reapply meta effects
-                 addBoxToTv(index); // Add the initial box back
-                 resizeTvScreen(tvState); // Ensure screen size is correct
-                 checkAndAdjustBoxPositions(index); // Ensure box is positioned correctly
+             globalState.tvStates.forEach((tvState, index) => { Object.keys(tvState.upgrades).forEach(key => { tvState.upgrades[key] = 0; });
+                 clearTvScreenBoxes(index);
+                 tvState.boxes = [];
+                 tvState.nextBoxId = 0;
+                 tvState.lastCornerHitTimestamp = null;
+                 recalculateDerivedTvState(tvState);
+                 applyMetaUpgradesToTv(tvState);
+                 addBoxToTv(index);
+                 resizeTvScreen(tvState);
+                 checkAndAdjustBoxPositions(index);
             });
              recalculateGlobalSynergy(); updateTotalHitsDisplay(); updateTotalCornerHitsDisplay();
              updateAllTvGlows(); checkMetaButtonVisibility(); saveGame();
@@ -1294,7 +1304,6 @@
         // --- Saving and Loading ---
         function saveGame() {
             try {
-                // Don't save if tab is hidden AND hasn't saved recently (prevents excessive saving on brief hide/show)
                 const now = Date.now();
                  if (document.hidden && (now - lastSaveTime < 4000)) {
                      return;
@@ -1304,20 +1313,21 @@
                      return;
                  }
 
-                // *** Add current timestamp before saving ***
                 globalState.lastSaveTimestamp = now;
-                lastSaveTime = now; // Update last save time tracker
+                lastSaveTime = now;
 
                 const amountToSave = (selectedBuyAmount === Infinity) ? 'max' : selectedBuyAmount;
                 const stateToSave = JSON.parse(JSON.stringify({...globalState, selectedBuyAmount: amountToSave}, (key, value) => {
-                    if (key === 'elements' || key === 'element' || key === 'resizeRetryTimeout' || key === 'adjustRetryTimeout') return undefined; // Exclude transient/DOM properties
+                    if (key === 'elements' || key === 'element' || key === 'resizeRetryTimeout' || key === 'adjustRetryTimeout') return undefined;
                      if (['x', 'y', 'vx', 'vy'].includes(key)) {
                          return (typeof value === 'number' && !isNaN(value)) ? value : 0;
+                     }
+                     if (key === 'lastCornerHitTimestamp') {
+                         return (typeof value === 'number' && value > 0) ? value : null;
                      }
                     return value;
                 }));
                 localStorage.setItem(SAVE_KEY, JSON.stringify(stateToSave));
-                // console.log("Game Saved at", new Date(globalState.lastSaveTimestamp).toLocaleTimeString()); // Optional debug log
 
             } catch (e) {
                 console.error("Save Error:", e);
@@ -1327,25 +1337,33 @@
         function loadGame() {
             const savedData = localStorage.getItem(SAVE_KEY);
             let needsInitialization = true;
-            let offlineGains = 0; // Track offline gains separately
+            let offlineGains = 0;
 
             if (savedData) {
                 try {
                     const loadedState = JSON.parse(savedData);
-                    // Basic validation
-                    if (typeof loadedState.systemFragments === 'number' && Array.isArray(loadedState.tvStates) && loadedState.metaLevels) {
-                        globalState = createDefaultGlobalState(); // Start with defaults
-                        globalState = deepMerge(globalState, loadedState); // Merge loaded data
+                    // Updated validation to check for the new meta level specifically
+                    if (typeof loadedState.systemStaticCharges === 'number' && Array.isArray(loadedState.tvStates) && loadedState.metaLevels && typeof loadedState.metaLevels.cornersSuckBonus === 'number') {
+                        globalState = createDefaultGlobalState();
+                        globalState = deepMerge(globalState, loadedState);
 
-                        // --- Post-load validation and cleanup ---
                         globalState.totalSessionHits = Number(globalState.totalSessionHits) || 0;
                         globalState.lifetimeSessionHits = Number(globalState.lifetimeSessionHits) || globalState.totalSessionHits;
                         globalState.totalCornerHits = Number(globalState.totalCornerHits) || 0;
-                        globalState.systemFragments = Number(globalState.systemFragments) || 0;
+                        globalState.systemStaticCharges = Number(globalState.systemStaticCharges) || 0;
                         globalState.hasRebootedOnce = Boolean(globalState.hasRebootedOnce);
-                        globalState.lastSaveTimestamp = Number(globalState.lastSaveTimestamp) || null; // Ensure it's a number or null
+                        globalState.lastSaveTimestamp = Number(globalState.lastSaveTimestamp) || null;
 
-                        // Ensure nextTvId is valid
+                        Object.keys(globalState.metaLevels).forEach(key => {
+                            // Ensure all expected meta levels exist, defaulting to 0 if missing
+                            if (globalState.metaLevels[key] === undefined) {
+                                console.warn(`Meta level ${key} missing from save, initializing to 0.`);
+                                globalState.metaLevels[key] = 0;
+                            } else {
+                                globalState.metaLevels[key] = Number(globalState.metaLevels[key]) || 0;
+                            }
+                         });
+
                         globalState.nextTvId = Math.max(globalState.nextTvId || 0, (globalState.tvStates.reduce((max, tv) => Math.max(max, tv.id ?? -1), -1) + 1));
                         if (globalState.metaLevels.hasOwnProperty('logoSize')) { delete globalState.metaLevels.logoSize; }
 
@@ -1353,22 +1371,21 @@
                         if (selectedBuyAmount === 'max') selectedBuyAmount = Infinity;
                         else selectedBuyAmount = parseInt(selectedBuyAmount) || 1;
 
-                        // *** Calculate Offline Progress ***
+                        // --- Calculate Offline Progress ---
                         if (globalState.lastSaveTimestamp && typeof globalState.lastSaveTimestamp === 'number') {
                             const currentTime = Date.now();
                             let offlineTimeMs = currentTime - globalState.lastSaveTimestamp;
 
-                            if (offlineTimeMs < 0) { // Clock went backwards? Ignore.
+                            if (offlineTimeMs < 0) {
                                 console.warn("Negative offline time detected, ignoring offline progress calculation.");
                                 offlineTimeMs = 0;
                             }
 
-                            // Apply min/max caps
                             offlineTimeMs = Math.min(offlineTimeMs, MAX_OFFLINE_TIME_MS);
 
                             if (offlineTimeMs >= MIN_OFFLINE_TIME_MS) {
-                                // Ensure derived state is correct *before* calculating gains
-                                updateAllTvsPostMeta(); // Apply meta upgrades first
+                                // Update derived states *before* calculating offline gains based on them
+                                updateAllTvsPostMeta();
                                 recalculateGlobalSynergy();
 
                                 console.log(`Calculating offline gains for ${Math.round(offlineTimeMs / 1000)} seconds...`);
@@ -1376,7 +1393,7 @@
 
                                 if (offlineGains > 0) {
                                     globalState.totalSessionHits += offlineGains;
-                                    globalState.lifetimeSessionHits += offlineGains; // Add to both
+                                    globalState.lifetimeSessionHits += offlineGains;
                                     console.log(`Offline Gains: ${formatScore(offlineGains)} Hits`);
                                 }
                             } else {
@@ -1386,31 +1403,37 @@
                              console.log("No valid lastSaveTimestamp found for offline calculation.");
                         }
 
-
-                        // Validate box data within each TV state *after* applying offline gains
+                        // Validate TV states *after* potential offline gains
                         globalState.tvStates.forEach((tv, index) => {
                             tv.index = index;
-                            tv.boxes = Array.isArray(tv.boxes) ? tv.boxes : []; // Ensure boxes is an array
+                            tv.boxes = Array.isArray(tv.boxes) ? tv.boxes : [];
                             tv.boxes.forEach(box => {
                                 box.x = (typeof box.x === 'number' && !isNaN(box.x)) ? box.x : 50;
                                 box.y = (typeof box.y === 'number' && !isNaN(box.y)) ? box.y : 50;
                                 box.vx = (typeof box.vx === 'number' && !isNaN(box.vx)) ? box.vx : (Math.random()-0.5)*BASE_SPEED_CONSTANT*0.5;
                                 box.vy = (typeof box.vy === 'number' && !isNaN(box.vy)) ? box.vy : (Math.random()-0.5)*BASE_SPEED_CONSTANT*0.5;
-                                box.element = null; // Ensure elements are recreated
+                                box.element = null;
                             });
                             tv.nextBoxId = Math.max(tv.nextBoxId || 0, (tv.boxes.reduce((max, box) => Math.max(max, box.id ?? -1), -1) + 1));
+                            tv.lastCornerHitTimestamp = (typeof tv.lastCornerHitTimestamp === 'number' && tv.lastCornerHitTimestamp > 0) ? tv.lastCornerHitTimestamp : null;
+                            // Ensure all expected upgrades exist in the loaded TV state
+                            Object.keys(createDefaultTvState(0,0).upgrades).forEach(upgradeKey => {
+                                if (tv.upgrades[upgradeKey] === undefined) {
+                                    console.warn(`TV ${tv.id} missing upgrade ${upgradeKey} from save, initializing to 0.`);
+                                    tv.upgrades[upgradeKey] = 0;
+                                }
+                            });
                         });
                         nextTvId = globalState.nextTvId;
-                        boxCollisionTimers = {}; // Reset collision timers
+                        boxCollisionTimers = {};
 
-                        updateAllTvsPostMeta(); // Re-apply meta upgrades to all loaded TVs
-                        recalculateGlobalSynergy(); // Recalculate synergy
+                        updateAllTvsPostMeta(); // Re-apply potentially updated meta levels
+                        recalculateGlobalSynergy();
 
-                        // Show combined notification *after* potential offline gains
                         showNotification(`Loaded Game State${offlineGains > 0 ? ` (+${formatScore(offlineGains)} Offline Hits)` : ''}`);
                         needsInitialization = false;
                     } else {
-                        console.warn("Invalid save data structure found, resetting.", loadedState);
+                        console.warn("Invalid save data structure found (or missing new meta field 'cornersSuckBonus'), resetting.", loadedState);
                         localStorage.removeItem(SAVE_KEY);
                     }
                 } catch (e) {
@@ -1423,19 +1446,18 @@
             if (needsInitialization) {
                 console.log("No valid save found or load error, initializing new game.");
                 globalState = createDefaultGlobalState();
-                updateAllTvsPostMeta(); // Apply initial meta state
-                recalculateGlobalSynergy(); // Calculate initial synergy
-                addTv(); // Add the first TV
+                updateAllTvsPostMeta();
+                recalculateGlobalSynergy();
+                addTv();
                 selectedBuyAmount = 1;
             }
 
-             // Recreate DOM *after* all state modifications (including offline gains)
              recreateAllDomElements();
              checkMetaButtonVisibility();
-             updateTotalHitsDisplay(); // Update displays with final values
+             updateTotalHitsDisplay();
              updateTotalCornerHitsDisplay();
              updateAllTvGlows();
-             requestAnimationFrame(handleGlobalResize); // Initial resize check after DOM is ready
+             requestAnimationFrame(handleGlobalResize);
         }
 
         // --- Utility: Deep Merge ---
@@ -1447,27 +1469,29 @@
                 const targetValue = target[key];
                 const sourceValue = source[key];
                 if (sourceValue === undefined || sourceValue === null) {
-                     // Keep target value if source is null/undefined, unless target also doesn't have it
-                     if (!(key in output)) {
-                         output[key] = undefined;
-                     }
+                    if (!(key in output) || key === 'lastCornerHitTimestamp') {
+                        output[key] = sourceValue;
+                    }
                     return;
                 }
                 if (isObject(sourceValue)) {
                     if (isObject(targetValue)) {
-                        output[key] = deepMerge(targetValue, sourceValue);
+                        // Ensure nested objects like 'upgrades' and 'metaLevels' are handled correctly
+                        if (key === 'upgrades' || key === 'metaLevels') {
+                           output[key] = deepMerge(targetValue, sourceValue); // Merge level by level
+                        } else {
+                            output[key] = deepMerge(targetValue, sourceValue); // Standard deep merge
+                        }
                     } else {
-                        output[key] = JSON.parse(JSON.stringify(sourceValue)); // Deep copy source object
+                        output[key] = JSON.parse(JSON.stringify(sourceValue));
                     }
                 } else if (Array.isArray(sourceValue)) {
-                     // Overwrite arrays completely, don't merge them element by element
                     output[key] = JSON.parse(JSON.stringify(sourceValue));
                 } else {
-                    output[key] = sourceValue; // Overwrite primitives
+                    output[key] = sourceValue;
                 }
             });
-             // Ensure keys only present in target are kept
-            Object.keys(target).forEach(key => {
+             Object.keys(target).forEach(key => {
                 if (!(key in source)) {
                     output[key] = target[key];
                 }
@@ -1482,10 +1506,9 @@
                 index: index, id: id,
                 boxes: [], nextBoxId: 0,
                 upgrades: { hitValue: 0, speed: 0, cornerBonusFlat: 0, cornerBonusPercent: 0, boxCollisionValue: 0 },
-                // Derived stats (will be recalculated)
                 hitValue: 1, cornerHitBaseBonus: 1000, cornerHitPercentBonus: 0, boxCollisionValue: 2,
-                baseSpeedFactorMeta: 1.0, // Affected by meta upgrades
-                // Runtime properties (not saved)
+                baseSpeedFactorMeta: 1.0,
+                lastCornerHitTimestamp: null,
                 screenWidth: 0, screenHeight: 0,
                 dynamicBoxWidth: 0, dynamicBoxHeight: 0,
                 elements: null,
@@ -1497,42 +1520,43 @@
         function createDefaultGlobalState() {
             const now = Date.now();
             return {
-                systemFragments: 0,
+                systemStaticCharges: 0,
                 totalSessionHits: 0,
                 lifetimeSessionHits: 0,
                 totalCornerHits: 0,
                 tvStates: [],
-                metaLevels: { fragmentGain: 0, baseSpeed: 0, baseMaxBoxes: 0, tvSynergyBonus: 0 },
+                metaLevels: {
+                    staticChargeGain: 0,
+                    baseSpeed: 0,
+                    baseMaxBoxes: 0,
+                    tvSynergyBonus: 0,
+                    cornersSuckBonus: 0, // Initialize new meta level
+                },
                 synergyBonus: 1.0,
-                maxBoxesPerTv: 2,
+                maxBoxesPerTv: 2, // Derived from metaLevels.baseMaxBoxes (2 + 0 = 2)
                 hasRebootedOnce: false,
                 nextTvId: 0,
                 selectedBuyAmount: 1,
-                lastSaveTimestamp: now, // Set initial timestamp for new games
+                lastSaveTimestamp: now,
             };
         }
 
         // --- Idle Progress Calculation ---
-        // This function now serves both offline and tab-hidden calculations
         function calculateIdleGains(idleTimeMs) {
             if (!globalState || !globalState.tvStates || idleTimeMs <= 0) return 0;
-
-            // Ensure derived stats are current before calculation
-             // Not strictly needed here if called after updateAllTvsPostMeta() in loadGame,
-             // but good practice if called elsewhere later.
-            // updateAllTvsPostMeta();
-            // recalculateGlobalSynergy();
 
             let totalIdleHitsPerSec = 0;
             globalState.tvStates.forEach(tvState => {
                 if (tvState.boxes.length === 0) return;
 
-                // Use current derived values (already calculated)
+                // Ensure derived state is correct for the TV *before* calculation
+                // applyMetaUpgradesToTv(tvState); // This recalculates derived stats too
+                // Note: We rely on loadGame calling updateAllTvsPostMeta() before this
+
                 const tvSpeedFactor = deriveTvSpeedFactor(tvState, tvState.upgrades.speed);
-                const tvHitValue = tvState.hitValue; // Already calculated
+                const tvHitValue = tvState.hitValue; // Use the recalculated base hit value
                 const numBoxes = tvState.boxes.length;
 
-                // Simple estimation: hits proportional to boxes, speed, and base hit value
                 const hitsPerSecPerBox = IDLE_HITS_PER_SEC_PER_BOX_BASE_FACTOR * tvSpeedFactor;
                 const idleHitsPerTvPerSec = numBoxes * hitsPerSecPerBox * tvHitValue;
                 totalIdleHitsPerSec += idleHitsPerTvPerSec;
@@ -1542,46 +1566,34 @@
             const totalEffectiveIdleHitsPerSec = totalIdleHitsPerSec * globalState.synergyBonus * DEV_SPEED_FACTOR;
             const totalGainedHits = totalEffectiveIdleHitsPerSec * (idleTimeMs / 1000);
 
-            // console.log(`Idle Calc: ${idleTimeMs}ms -> ${totalIdleHitsPerSec.toFixed(2)} base HPS -> ${totalEffectiveIdleHitsPerSec.toFixed(2)} effective HPS -> ${Math.floor(totalGainedHits)} Hits`);
-
-            return Math.max(0, Math.floor(totalGainedHits)); // Ensure non-negative integer
+            return Math.max(0, Math.floor(totalGainedHits));
         }
 
-        // --- Handle Visibility Change for *Tab Hiding* Idle ---
+        // --- Handle Visibility Change ---
         function handleVisibilityChange() {
-            const now = performance.now(); // Use performance.now() for tab visibility
+            const now = performance.now();
             if (document.hidden) {
-                timeHidden = now; // Record time when tab became hidden using performance timer
-                // Save game state when becoming hidden (includes Date.now() timestamp)
-                saveGame();
-                // Optional: Clear the game loop interval to save CPU when hidden
-                // if (gameLoopInterval) {
-                //     clearInterval(gameLoopInterval);
-                //     gameLoopInterval = null;
-                // }
+                timeHidden = now;
+                saveGame(); // Save state when going hidden
             } else {
-                if (timeHidden !== null) { // Coming back from hidden state *in the same session*
+                if (timeHidden !== null) {
                     const idleTimeMs = now - timeHidden;
-                    if (idleTimeMs > 1000) { // Only calculate if hidden for > 1 second
-                        // Call the same gain calculation function
+                    if (idleTimeMs > 1000) {
                         const gainedHits = calculateIdleGains(idleTimeMs);
                         if (gainedHits > 0) {
                             globalState.totalSessionHits += gainedHits;
-                            globalState.lifetimeSessionHits += gainedHits; // Add to both counts
+                            globalState.lifetimeSessionHits += gainedHits;
                             showNotification(`Gained ${formatScore(gainedHits)} Hits while tab was inactive.`);
                             updateTotalHitsDisplay();
                             updateAllTvGlows();
-                            // Modal buttons update automatically if open via game loop
                         }
                     }
-                    timeHidden = null; // Reset hidden time tracker
+                    timeHidden = null;
                 }
-                // Re-sync animation timestamp and ensure loop is running
-                lastTimestamp = performance.now(); // Reset animation timer
-                 if (!gameLoopInterval && !document.hidden) { // Restart loop if needed
+                lastTimestamp = performance.now();
+                 if (!gameLoopInterval && !document.hidden) {
                      gameLoopInterval = setInterval(() => gameLoop(performance.now()), TICK_RATE_MS);
                  }
-                 // Trigger resize/position checks on becoming visible again
                  requestAnimationFrame(handleGlobalResize);
                  globalState.tvStates.forEach((tv, index) => checkAndAdjustBoxPositions(index));
             }
@@ -1600,20 +1612,18 @@
                  console.error("Image preloading issues:", error);
              }
 
-             // Load game *first* to potentially apply offline gains
-             loadGame();
+             loadGame(); // Load game state (includes offline calc and DOM recreation)
 
              // --- Event Listeners ---
              modalCloseButton.addEventListener('click', closeUpgradeModal);
-             upgradeModal.addEventListener('click', (e) => { if (e.target === upgradeModal) closeUpgradeModal(); }); // Close on backdrop click
-             metaMenuButton.addEventListener('click', () => openUpgradeModal(-1)); // Open meta modal
-             window.addEventListener('resize', handleGlobalResize); // Handle window resizing
-             document.addEventListener('visibilitychange', handleVisibilityChange); // Handle tab visibility
+             upgradeModal.addEventListener('click', (e) => { if (e.target === upgradeModal) closeUpgradeModal(); });
+             metaMenuButton.addEventListener('click', () => openUpgradeModal(-1));
+             window.addEventListener('resize', handleGlobalResize);
+             document.addEventListener('visibilitychange', handleVisibilityChange);
 
              // --- Start Game Loop ---
-             lastTimestamp = performance.now(); // Set initial timestamp for game loop
-             lastSaveTime = Date.now(); // Set initial save time check
-             // Start loop only if tab is initially visible
+             lastTimestamp = performance.now();
+             lastSaveTime = Date.now();
              if (!document.hidden) {
                 gameLoopInterval = setInterval(() => gameLoop(performance.now()), TICK_RATE_MS);
              }
@@ -1626,7 +1636,6 @@
 
              console.log(`Initialization took ${elapsedTime.toFixed(0)}ms. Delaying hide by ${delayTime.toFixed(0)}ms.`);
 
-             // Hide loading screen after minimum time + fade out
              setTimeout(() => {
                  if (loadingScreen) {
                      loadingScreen.classList.add('hidden');
@@ -1634,7 +1643,7 @@
                          if (loadingScreen && loadingScreen.parentNode) {
                               loadingScreen.parentNode.removeChild(loadingScreen);
                          }
-                     }, 500); // Match the CSS transition duration
+                     }, 500);
                  }
              }, delayTime);
         }
@@ -1643,7 +1652,7 @@
         if (document.readyState === 'loading') {
              document.addEventListener('DOMContentLoaded', init);
         } else {
-             init(); // Already loaded
+             init();
         }
 
     })();
