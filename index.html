@@ -16,6 +16,7 @@
             --highlight-color-wall: #0df;
             --meta-color: #f0f; /* Pink */
             --collision-color: #f90;
+            --screen-burn-color: #ff4500; /* OrangeRed for burn */
             --tv-hover-light: #f50;
             --tv-upgrade-light: var(--highlight-color-hits);
             --modal-bg-translucent: rgba(25, 25, 25, 0.92);
@@ -26,6 +27,9 @@
             --disabled-color: #777;
             --accent-color: #eee;
             --main-bg-color: #000;
+            --corner-bet-color: #ffd700; /* Gold */
+            --win-color: #2f2; /* Bright Green */
+            --loss-color: #f44; /* Bright Red */
         }
 
         html, body {
@@ -125,7 +129,7 @@
             width: 100%; max-width: 1400px;
             padding: 15px; box-sizing: border-box;
             margin-top: 65px;
-            max-height: calc(100vh - 110px);
+            max-height: calc(100vh - 110px); /* Adjusted for potential top/bottom buttons */
             overflow-y: auto;
             overflow-x: hidden;
         }
@@ -168,7 +172,51 @@
         .tv-screen::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.20) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.015), rgba(0, 0, 255, 0.04)); background-size: 100% 2px, 3px 100%; z-index: 2; pointer-events: none; animation: crt-scanline 100s linear infinite; }
         @keyframes crt-scanline { 0% { background-position: 0 0; } 100% { background-position: 0 100%; } }
 
-        .box { position: absolute; background-color: #ffffff; mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png'); -webkit-mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png'); mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-position: center; -webkit-mask-position: center; z-index: 1; filter: brightness(1.05); will-change: transform; }
+        .box {
+            position: absolute;
+            background-color: #ffffff;
+            mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png');
+            -webkit-mask-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/DVD_VIDEO_logo.png/960px-DVD_VIDEO_logo.png');
+            mask-size: contain; -webkit-mask-size: contain;
+            mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
+            mask-position: center; -webkit-mask-position: center;
+            z-index: 1;
+            filter: brightness(1.05);
+            will-change: transform, filter, box-shadow;
+            transition: filter 0.2s ease, box-shadow 0.2s ease;
+            /* CSS variables for transform base, used by JS and shake animation */
+            transform: translate(var(--tx, 0px), var(--ty, 0px));
+         }
+
+        /* --- START: Screen Burn Effect --- */
+        .box.screen-burn-effect {
+            filter: brightness(1.4) saturate(1.8);
+            box-shadow: 0 0 8px 4px var(--screen-burn-color),
+                        inset 0 0 4px rgba(255, 100, 50, 0.8);
+            animation: screenBurnPulse 0.8s infinite alternate ease-in-out;
+            z-index: 5; /* Bring burning logos slightly forward */
+        }
+        @keyframes screenBurnPulse {
+            0% { filter: brightness(1.4) saturate(1.8); box-shadow: 0 0 8px 4px var(--screen-burn-color), inset 0 0 4px rgba(255, 100, 50, 0.8); }
+            100% { filter: brightness(1.6) saturate(2.2); box-shadow: 0 0 12px 6px var(--screen-burn-color), inset 0 0 6px rgba(255, 120, 70, 0.9); }
+        }
+        /* --- END: Screen Burn Effect --- */
+
+        /* --- START: Logo Shake Effect --- */
+        /* This class is added/removed by JS during screen burn */
+        .logo-shake {
+            /* Apply animation ON TOP of the base transform set by --tx and --ty */
+            animation: logoShakeAnim 0.3s ease-in-out 1; /* Play once per application */
+        }
+        @keyframes logoShakeAnim {
+            /* These translate values are ADDED to the base transform */
+            0%, 100% { transform: translate(var(--tx, 0px), var(--ty, 0px)) translate(0, 0) rotate(0); }
+            25% { transform: translate(var(--tx, 0px), var(--ty, 0px)) translate(-1px, 1px) rotate(-0.5deg); }
+            50% { transform: translate(var(--tx, 0px), var(--ty, 0px)) translate(1px, -1px) rotate(0.5deg); }
+            75% { transform: translate(var(--tx, 0px), var(--ty, 0px)) translate(-1px, -1px) rotate(-0.5deg); }
+        }
+        /* --- END: Logo Shake Effect --- */
+
 
         .spark-particle { position: absolute; width: 2px; height: 2px; border-radius: 50%; pointer-events: none; z-index: 10; opacity: 1; background-color: #fff; transition: transform 0.6s cubic-bezier(0.1, 0.7, 0.9, 1), opacity 0.6s ease-out; box-shadow: 0 0 3px #fff; }
 
@@ -226,7 +274,7 @@
         .upgrade-button:disabled .upgrade-cost { color: var(--disabled-color); opacity: 0.8; }
         #modal-reboot-section-container { width: 100%; }
         #reboot-section { border-top: 1px dashed var(--meta-color); margin-top: 15px; padding-top: 15px; text-align: center; }
-        #reboot-info { margin-bottom: 8px; font-size: 0.85em; color: #ccc; }
+
         #reboot-gain-preview { margin-bottom: 12px; font-weight: bold; font-size: 0.9em; }
 
         /* --- START: Progress Bar Styles --- */
@@ -271,9 +319,116 @@
         #reboot-button:hover:not(:disabled) { background-color: #ff40ff; }
         #reboot-button:active:not(:disabled) { transform: scale(0.96); }
         #reboot-button:disabled { background-color: #606; color: var(--disabled-color); cursor: not-allowed; }
-        #meta-menu-button { position: fixed; bottom: 15px; right: 15px; background-color: var(--meta-color); color: white; border: 1px solid #505; border-radius: 50%; width: 45px; height: 45px; font-size: 1.5rem; cursor: pointer; z-index: 900; display: none; justify-content: center; align-items: center; box-shadow: 0 3px 8px rgba(0,0,0,0.4); transition: background-color 0.2s, transform 0.2s; display: none; }
-        #meta-menu-button:hover { background-color: #ff40ff; transform: scale(1.1); }
+
+        /* --- Action Buttons --- */
+        .action-button-container { /* Common container style */
+            position: fixed;
+            display: flex;
+            gap: 10px;
+            z-index: 900;
+        }
+        #meta-button-container { /* Bottom Left */
+            bottom: 15px;
+            left: 15px;
+        }
+        #screen-burn-container { /* Bottom Right */
+             bottom: 15px;
+             right: 15px;
+         }
+         /* New: Corner Bet Button Container */
+        #corner-bet-container { /* Bottom Center */
+             bottom: 15px;
+             left: 50%;
+             transform: translateX(-50%);
+             /* No position: fixed needed as action-button-container handles it */
+         }
+
+        .action-button {
+            background-color: var(--button-bg);
+            color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 1.5rem; /* Adjust as needed */
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+            transition: background-color 0.2s, transform 0.2s, opacity 0.3s;
+            position: relative; /* For potential cooldown overlays */
+            overflow: hidden; /* Hide text overflow */
+        }
+        .action-button:hover:not(:disabled) { transform: scale(1.1); }
+        .action-button:active:not(:disabled) { transform: scale(1.0); }
+        .action-button:disabled { background-color: #333; color: var(--disabled-color); cursor: not-allowed; opacity: 0.6; }
+        .action-button .button-text { font-size: 0.6rem; position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgba(0,0,0,0.7); padding: 1px 4px; border-radius: 3px; display: none; } /* Hide text by default */
+        .action-button:hover .button-text { display: block; } /* Show on hover */
+        .action-button .cooldown-text {
+            font-size: 0.6rem; /* Adjust size as needed */
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 1px black;
+            pointer-events: none; /* Allow clicks to pass through */
+            white-space: nowrap;
+            line-height: 1;
+            display: none; /* Hide by default */
+        }
+
+
+        #meta-menu-button {
+            background-color: var(--meta-color);
+            border-color: #505;
+            display: none; /* Initially hidden, shown by JS */
+        }
+        #meta-menu-button:hover:not(:disabled) { background-color: #ff40ff; }
         #meta-menu-button.show { display: flex; }
+
+        #screen-burn-button {
+            background-color: var(--screen-burn-color);
+            border-color: #8b2500; /* Darker orange/red */
+            display: none; /* Initially hidden */
+        }
+         #screen-burn-button:hover:not(:disabled) { background-color: #ff6347; } /* Lighter Tomato */
+         #screen-burn-button:disabled .cooldown-text { display: block; } /* Show cooldown text when disabled */
+         #screen-burn-button:not(:disabled) .cooldown-text { display: none; } /* Hide cooldown text when ready */
+
+         /* New: Corner Bet Button */
+         #corner-bet-button {
+             background-color: var(--corner-bet-color);
+             border-color: #b8860b; /* DarkGoldenrod */
+             color: #111; /* Dark text for contrast */
+             font-weight: bold;
+             display: none; /* Initially hidden, shown by JS */
+         }
+         #corner-bet-button:hover:not(:disabled) { background-color: #ffec8b; /* LightGoldenrod */ }
+         #corner-bet-button:disabled {
+             background-color: #665a2b; /* Darker Gold */
+             opacity: 0.7;
+             cursor: not-allowed;
+         }
+         #corner-bet-button.bet-active {
+             background-color: #999 !important; /* Grey out when bet is active */
+             border-color: #666 !important;
+             cursor: not-allowed;
+         }
+         #corner-bet-button.bet-active::after {
+            content: '⏳'; /* Indicate waiting */
+            position: absolute;
+            font-size: 1.2rem;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.8;
+            pointer-events: none;
+         }
+
+        /* --- End Action Buttons --- */
+
         #notification { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); background-color: rgba(30, 30, 30, 0.85); color: white; padding: 8px 15px; border-radius: 5px; font-size: 0.85rem; opacity: 0; transition: opacity 0.5s ease-in-out, top 0.5s ease-in-out; pointer-events: none; z-index: 1100; text-align: center; border: 1px solid #555;}
         #notification.show { opacity: 1; top: 25px; }
 
@@ -281,13 +436,47 @@
         .corner-hit-text { top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--highlight-color-corners); font-size: clamp(1.5rem, 4vw, 2.4rem); text-shadow: 1px 1px #111, 0 0 15px var(--highlight-color-corners), 0 0 5px white; animation: cornerHitAnim 1.3s ease-out forwards; z-index: 101; }
         .collision-text { color: var(--collision-color); font-size: clamp(0.9rem, 2.5vw, 1.4rem); text-shadow: 1px 1px #111, 0 0 8px var(--collision-color); animation: floatFadeUp 0.9s ease-out forwards; z-index: 99; }
         .wall-hit-text { color: var(--highlight-color-wall); font-size: clamp(0.8rem, 2.2vw, 1.2rem); text-shadow: 1px 1px #111, 0 0 6px var(--highlight-color-wall); animation: floatFadeUp 0.8s ease-out forwards; z-index: 98; }
+        .burn-hit-text { color: var(--screen-burn-color); font-size: clamp(0.7rem, 2vw, 1.1rem); text-shadow: 1px 1px #111, 0 0 6px var(--screen-burn-color); animation: floatFadeUpShort 0.6s ease-out forwards; z-index: 97; }
+
 
         @keyframes floatFadeUp { 0% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -150%) scale(0.8); } }
+        @keyframes floatFadeUpShort { 0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -100%) scale(0.8); } }
         @keyframes cornerHitAnim { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(0.95); } 100% { opacity: 0; transform: translate(-50%, -180%) scale(0.7); } }
 
         svg { position:absolute; height: 0; width: 0; }
 
          /* Dev Panel Specific Styles */
+         #dev-panel-container { /* Container for Dev Tools */
+             position: fixed;
+             top: 15px; /* Moved to top */
+             left: 15px; /* Moved to left */
+             z-index: 950;
+             display: flex;
+             flex-direction: column;
+             align-items: flex-start; /* Align items to the left */
+         }
+
+        #dev-button {
+            padding: 8px 12px;
+            background-color: #500;
+            color: white;
+            border: 1px solid #a00;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 0.9rem;
+            margin-bottom: 5px; /* Space between button and panel */
+        }
+        #dev-panel {
+            background-color: rgba(40, 0, 0, 0.85);
+            border: 1px solid #a00;
+            border-radius: 5px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            /* Removed fixed positioning, handled by container */
+        }
         #dev-panel label {
             color: #ccc;
             font-size: 0.8rem;
@@ -304,6 +493,64 @@
             border-radius: 3px;
              margin-right: 5px;
         }
+        #dev-panel button {
+             background-color: #333;
+             color: #eee;
+             border: 1px solid #666;
+             padding: 5px;
+             cursor: pointer;
+             font-size: 0.8rem;
+         }
+        #dev-hard-reset {
+            background-color: #800 !important; /* Ensure override */
+            color: white !important;
+            border: 1px solid #f00 !important;
+            margin-top: 5px;
+        }
+
+        /* --- Bet Result Overlay Styles --- */
+        #bet-result-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
+            color: white;
+            font-size: clamp(4rem, 15vw, 8rem); /* Huge text */
+            font-weight: bold;
+            text-align: center;
+            z-index: 1200; /* Above everything else */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease-in-out;
+            text-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+            line-height: 1.1;
+            white-space: pre-wrap; /* Allow line breaks */
+        }
+        #bet-result-overlay.show {
+            opacity: 1;
+            pointer-events: auto; /* Block clicks while shown */
+        }
+        #bet-result-overlay.win {
+            color: var(--win-color);
+            text-shadow: 3px 3px 0px #151, 0 0 25px var(--win-color);
+        }
+        #bet-result-overlay.loss {
+            color: var(--loss-color);
+            text-shadow: 3px 3px 0px #511, 0 0 25px var(--loss-color);
+            font-size: clamp(3rem, 12vw, 6rem); /* Slightly smaller for loss */
+        }
+        #bet-result-overlay .bet-amount {
+            font-size: 0.35em; /* Smaller font for the amount */
+            margin-top: 5px;
+            display: block; /* Ensure it's on its own line */
+        }
+        /* --- End Bet Result Overlay Styles --- */
     </style>
 </head>
 <body>
@@ -334,7 +581,28 @@
         <div id="total-hits-display" class="top-info-display">Hits: 0</div>
     </div>
     <div id="tvs-display-area"></div>
-    <button id="meta-menu-button" aria-label="Meta Upgrades & Reboot">✵</button>
+
+    <!-- Meta Button Container (Bottom Left) -->
+    <div id="meta-button-container" class="action-button-container">
+        <button id="meta-menu-button" class="action-button" aria-label="Meta Upgrades & Reboot">✵</button>
+    </div>
+
+    <!-- Screen Burn Button Container (Bottom Right) -->
+    <div id="screen-burn-container" class="action-button-container">
+         <button id="screen-burn-button" class="action-button" aria-label="Activate Screen Burn" disabled>
+             🔥
+             <span class="cooldown-text"></span> <!-- Span for cooldown text overlay -->
+         </button>
+     </div>
+
+    <!-- Corner Bet Button Container (Bottom Center) -->
+    <div id="corner-bet-container" class="action-button-container">
+         <button id="corner-bet-button" class="action-button" aria-label="Bet All Hits on Next Corner">?</button>
+    </div>
+
+    <!-- Bet Result Overlay -->
+    <div id="bet-result-overlay"></div>
+
 </div>
 
 <div id="upgrade-modal">
@@ -352,7 +620,7 @@
 
 <div id="reboot-section-template" style="display: none;">
     <div id="reboot-section">
-        <div id="reboot-info">Reboot to gain Static Charges based on total Hits this session.</div>
+
         <div id="reboot-gain-preview">Gain ~0 Static Charges</div>
         <!-- START: Progress Bar HTML Structure -->
         <div id="reboot-progress-container">
@@ -368,19 +636,20 @@
 
 <div id="notification"></div>
 
-<!-- DEV Tools -->
-<button id="dev-button" style="position: fixed; bottom: 15px; left: 15px; z-index: 950; padding: 8px 12px; background-color: #500; color: white; border: 1px solid #a00; border-radius: 5px; cursor: pointer; font-family: monospace; font-size: 0.9rem;">
-    DEV
-</button>
-<div id="dev-panel" class="hidden" style="position: fixed; bottom: 55px; left: 15px; z-index: 951; background-color: rgba(40, 0, 0, 0.85); border: 1px solid #a00; border-radius: 5px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
-    <button id="dev-simulate-corner" style="background-color: #333; color: #eee; border: 1px solid #666; padding: 5px; cursor: pointer;">Simulate Corner Hit</button>
-    <div>
-        <label for="dev-speed-input">Score Factor:</label>
-        <input type="number" id="dev-speed-input" name="dev-speed-input" min="0.1" step="0.1" value="1.0">
+<!-- DEV Tools Container (Top Left) -->
+<div id="dev-panel-container">
+    <button id="dev-button">DEV</button>
+    <div id="dev-panel" class="hidden">
+        <button id="dev-simulate-corner">Simulate Corner Hit</button>
+        <div>
+            <label for="dev-speed-input">Score Factor:</label>
+            <input type="number" id="dev-speed-input" name="dev-speed-input" min="0.1" step="0.1" value="1.0">
+        </div>
+        <button id="dev-reset-burn-cd">Reset Burn CD</button>
+        <button id="dev-hard-reset">Hard Reset Game</button>
     </div>
-    <button id="dev-hard-reset" style="background-color: #800; color: white; border: 1px solid #f00; padding: 5px; cursor: pointer; margin-top: 5px;">Hard Reset Game</button>
 </div>
-<!-- End DEV Tools -->
+<!-- End DEV Tools Container -->
 
 <script>
     (function() {
@@ -393,7 +662,7 @@
         const BASE_BOX_ASPECT_RATIO = 1.6;
         const BASE_SPEED_CONSTANT = 1.0;
         const MAX_BOXES_PER_TV = 15;
-        const SAVE_VERSION = 'v0.4';
+        const SAVE_VERSION = 'v0.13'; // Incremented version for Meta Balance Fixes
         const SAVE_KEY = `dvdVideoIdleSave_${SAVE_VERSION}`;
         const TICK_RATE_MS = 16;
         const COLLISION_ENERGY_LOSS = 0.96;
@@ -402,16 +671,21 @@
         const TV_COST_SCALING_FACTOR = 1.8;
         const MAX_BULK_BUY_CHECK = 10000;
         const IDLE_HITS_PER_SEC_PER_BOX_BASE_FACTOR = 0.6;
-        const MIN_LOADING_TIME_MS = 1500; // Reduced slightly
+        const MIN_LOADING_TIME_MS = 1500;
         const MIN_OFFLINE_TIME_MS = 60 * 1000;
         const MAX_OFFLINE_TIME_MS = 14 * 24 * 60 * 60 * 1000;
-        const CORNERS_SUCK_TIME_SCALE_FACTOR = 6000;
-        const CORNERS_SUCK_LEVEL_SCALE_FACTOR = 0.01;
+        const CORNERS_SUCK_TIME_SCALE_FACTOR = 3000;
+        const CORNERS_SUCK_LEVEL_SCALE_FACTOR = 0.12; // FIX: Increased from 0.08
         const CORNERS_SUCK_MAX_MULTIPLIER = 3.0;
-        const REBOOT_MIN_HITS_FOR_FIRST_CHARGE = 5000; // Explicit constant
-        const FIND_THRESHOLD_MAX_ITERATIONS = 1000; // Safety limit for search
-        const FIND_THRESHOLD_MAX_HITS = 1e24; // Practical upper limit for search
-
+        const REBOOT_MIN_HITS_FOR_FIRST_CHARGE = 5000;
+        const FIND_THRESHOLD_MAX_ITERATIONS = 1000;
+        const FIND_THRESHOLD_MAX_HITS = 1e24;
+        const SCREEN_BURN_DURATION_MS = 5000;
+        const SCREEN_BURN_COOLDOWN_SECONDS = 60;
+        const SCREEN_BURN_EFFECTIVE_HPS_FACTOR = 1.5;
+        const LOGO_SHAKE_ANIMATION_DURATION = 300;
+        const BET_RESULT_DISPLAY_MS = 3500;
+        const CORNER_BET_TIMEOUT_MS = 2000;
 
         // --- DOM Element Selection ---
         const loadingScreen = document.getElementById('loading-screen');
@@ -427,6 +701,11 @@
         const modalUpgradesContainer = upgradeModal.querySelector('#modal-upgrades-section');
         const modalRebootContainer = upgradeModal.querySelector('#modal-reboot-section-container');
         const metaMenuButton = document.getElementById('meta-menu-button');
+        const screenBurnButton = document.getElementById('screen-burn-button');
+        const screenBurnCooldownText = screenBurnButton.querySelector('.cooldown-text');
+        const cornerBetButton = document.getElementById('corner-bet-button');
+        const betResultOverlay = document.getElementById('bet-result-overlay');
+
 
         // --- Game State ---
         let globalState;
@@ -438,13 +717,15 @@
         let boxCollisionTimers = {};
         let selectedBuyAmount = 1;
         let timeHidden = null;
-        let hitsThresholdCache = {}; // Cache for findHitsThreshold results
+        let hitsThresholdCache = {};
+        let betResultTimeout = null;
 
         // --- Utility Functions ---
         const calculateCost = (baseCost, level, factor = 1.5, tvIndex = -1) => { let cost = baseCost * Math.pow(factor, level); if (tvIndex >= 0 && tvIndex > 0) { cost *= Math.pow(TV_COST_SCALING_FACTOR, tvIndex); } return Math.max(1, Math.floor(cost)); };
         const formatScore = (value) => { const V = Math.floor(value); if (V < 1e4) return V.toLocaleString(); if (V < 1e6) return (V / 1e3).toFixed(V < 100e3 ? 1 : 0) + 'K'; if (V < 1e9) return (V / 1e6).toFixed(V < 100e6 ? 1 : 0) + 'M'; if (V < 1e12) return (V / 1e9).toFixed(V < 100e9 ? 1 : 0) + 'B'; if (V < 1e15) return (V / 1e12).toFixed(V < 100e12 ? 1 : 0) + 'T'; if (V < 1e18) return (V / 1e15).toFixed(V < 100e15 ? 1 : 0) + 'Qd'; return (V / 1e18).toFixed(1) + 'Qn'; };
         function getRandomColor() { let r, g, b; let color = '#'; const letters = '0123456789ABCDEF'; do { color = '#'; for (let i = 0; i < 6; i++) { color += letters[Math.floor(Math.random() * 16)]; } r = parseInt(color.substring(1, 3), 16); g = parseInt(color.substring(3, 5), 16); b = parseInt(color.substring(5, 7), 16); } while (r + g + b < 450 || (r > 200 && g > 200 && b > 200)); return color; }
         function getBoxCollisionKey(id1, id2) { return id1 < id2 ? `${id1}-${id2}` : `${id2}-${id1}`; }
+        function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
 
         // --- Image Preloading ---
         function preloadImages(urls) {
@@ -470,12 +751,12 @@
 
             const tvFrame = document.createElement('div');
             tvFrame.classList.add('tv-frame');
-            tvFrame.id = `tv-frame-${tvState.id}`;
+            tvFrame.id = `tv-frame-${tvState.id + 1}`;
             tvFrame.onclick = (e) => { e.stopPropagation(); openUpgradeModal(tvState.index); };
 
             const tvScreen = document.createElement('div');
             tvScreen.classList.add('tv-screen');
-            tvScreen.id = `tv-screen-${tvState.id}`;
+            tvScreen.id = `tv-screen-${tvState.id + 1}`;
             tvFrame.appendChild(tvScreen);
 
             const powerLight = document.createElement('div');
@@ -485,32 +766,29 @@
             container.appendChild(tvFrame);
             tvsDisplayArea.appendChild(container);
 
-            tvState.elements = {
-                container,
-                frame: tvFrame,
-                screen: tvScreen,
-                powerLight: powerLight
-            };
+            tvState.elements = { container, frame: tvFrame, screen: tvScreen, powerLight: powerLight };
             resizeTvScreen(tvState);
             updateTvGlow(tvState.index);
         }
 
         function createBoxElement(tvState, boxData) {
             if (!tvState.elements || !tvState.elements.screen) {
-                console.error("TV screen element not found when creating box for TV", tvState.id);
+                console.error("TV screen element not found for TV", tvState.id + 1);
                 return null;
             }
             if (!tvState.screenWidth || !tvState.screenHeight) {
-                 console.warn("Screen dimensions not ready for TV", tvState.id, "retrying box creation soon.");
+                 console.warn("Screen dimensions not ready for TV", tvState.id + 1, "retrying box creation soon.");
                  if(!boxData.element){
                      setTimeout(() => {
                         if(globalState && globalState.tvStates[tvState.index]) {
                             const currentTvState = globalState.tvStates[tvState.index];
                             const reBox = currentTvState.boxes.find(b => b.id === boxData.id && !b.element);
-                            if (reBox && !reBox.element) {
+                            if (reBox) {
                                 reBox.element = createBoxElement(currentTvState, reBox);
                                 if(reBox.element) {
-                                    reBox.element.style.transform = `translate(${reBox.x}px, ${reBox.y}px)`;
+                                    reBox.element.style.setProperty('--tx', `${reBox.x}px`);
+                                    reBox.element.style.setProperty('--ty', `${reBox.y}px`);
+                                    reBox.element.style.transform = `translate(var(--tx), var(--ty))`;
                                 }
                             }
                         }
@@ -521,10 +799,12 @@
 
             const boxElement = document.createElement('div');
             boxElement.classList.add('box');
-            boxElement.id = `tv${tvState.id}-box${boxData.id}`;
+            boxElement.id = `tv${tvState.id + 1}-box${boxData.id}`;
             boxElement.style.width = `${tvState.dynamicBoxWidth}px`;
             boxElement.style.height = `${tvState.dynamicBoxHeight}px`;
-            boxElement.style.transform = `translate(${boxData.x}px, ${boxData.y}px)`;
+            boxElement.style.setProperty('--tx', `${boxData.x}px`);
+            boxElement.style.setProperty('--ty', `${boxData.y}px`);
+            boxElement.style.transform = `translate(var(--tx), var(--ty))`;
             boxElement.style.backgroundColor = getRandomColor();
             boxElement.style.maskImage = `url('${DVD_LOGO_URL}')`;
             boxElement.style.webkitMaskImage = `url('${DVD_LOGO_URL}')`;
@@ -538,7 +818,7 @@
             if (!tvState || tvState.boxes.length >= currentMaxBoxes) return false;
 
             if (!tvState.elements || !tvState.elements.screen || !tvState.screenWidth || !tvState.screenHeight) {
-                 console.warn(`TV ${tvState.id}: Screen dimensions not ready, delaying box add.`);
+                 console.warn(`TV #${tvState.id + 1}: Screen dimensions not ready, delaying box add.`);
                  resizeTvScreen(tvState);
                  setTimeout(() => addBoxToTv(tvIndex), 100);
                  return false;
@@ -563,12 +843,9 @@
             } while (tooClose && attempts < 10);
 
             const newBox = {
-                id: id,
-                x: startX,
-                y: startY,
-                vx: Math.cos(angle) * speed * 0.7,
-                vy: Math.sin(angle) * speed * 0.7,
-                element: null
+                id: id, x: startX, y: startY,
+                vx: Math.cos(angle) * speed * 0.7, vy: Math.sin(angle) * speed * 0.7,
+                element: null, burnEndTime: null
             };
 
             newBox.element = createBoxElement(tvState, newBox);
@@ -578,7 +855,7 @@
                  updateTvGlow(tvIndex);
                  return true;
             } else {
-                 console.warn("Box element creation potentially delayed for TV", tvState.id);
+                 console.warn("Box element creation potentially delayed for TV", tvState.id + 1);
                  tvState.boxes.push(newBox);
                  updateTvGlow(tvIndex);
                  return true;
@@ -597,7 +874,7 @@
             recalculateGlobalSynergy();
             updateMetaUpgradeButtonsIfVisible();
             updateAllTvGlows();
-            showNotification(`TV #${newId} Online`);
+            showNotification(`TV #${newId + 1} Online`);
             return newTvState;
         }
         function removeAllDomElements() { tvsDisplayArea.innerHTML = ''; globalState.tvStates.forEach(tv => tv.elements = null); }
@@ -607,13 +884,18 @@
                 createTvDom(tvState);
                 tvState.boxes.forEach(box => {
                     if (typeof box.x !== 'number' || typeof box.y !== 'number' || typeof box.vx !== 'number' || typeof box.vy !== 'number' || isNaN(box.x) || isNaN(box.y) || isNaN(box.vx) || isNaN(box.vy)) {
-                        console.warn(`Invalid box data on load for TV ${tvState.id} box ${box.id}. Resetting position/velocity.`);
+                        console.warn(`Invalid box data on load for TV ${tvState.id + 1} box ${box.id}. Resetting.`);
                         box.x = 50; box.y = 50; box.vx = (Math.random()-0.5)*0.5; box.vy = (Math.random()-0.5)*0.5;
                     }
+                    box.burnEndTime = null;
                     box.element = null;
                     box.element = createBoxElement(tvState, box);
+                     if (box.element) {
+                         box.element.classList.remove('screen-burn-effect');
+                         box.element.classList.remove('logo-shake');
+                     }
                     if (!box.element && tvState.screenWidth) {
-                        console.warn(`Box element recreation potentially delayed for TV ${tvState.id} box ${box.id}`);
+                        console.warn(`Box element recreation potentially delayed for TV ${tvState.id + 1} box ${box.id}`);
                     }
                  });
                  resizeTvScreen(tvState);
@@ -634,13 +916,12 @@
         function resizeTvScreen(tvState) {
             if (!tvState.elements || !tvState.elements.screen) {
                  if (globalState && globalState.tvStates[tvState.index] && !tvState.elements) {
-                     console.warn(`Elements missing for TV ${tvState.id}, attempting recreation.`);
+                     console.warn(`Elements missing for TV ${tvState.id + 1}, attempting recreation.`);
                      recreateAllDomElements();
                  }
                  return;
             }
             const screenRect = tvState.elements.screen.getBoundingClientRect();
-
             if (screenRect.width <= 0 || screenRect.height <= 0) {
                 if (!document.hidden) {
                     if (!tvState.resizeRetryTimeout) {
@@ -655,22 +936,26 @@
 
             const oldWidth = tvState.screenWidth;
             const oldHeight = tvState.screenHeight;
-
             tvState.screenWidth = screenRect.width;
             tvState.screenHeight = screenRect.height;
             tvState.dynamicBoxHeight = Math.max(8, Math.floor(tvState.screenHeight * BASE_LOGO_HEIGHT_SCREEN_RATIO));
             tvState.dynamicBoxWidth = Math.floor(tvState.dynamicBoxHeight * BASE_BOX_ASPECT_RATIO);
 
             if (Math.abs(tvState.screenWidth - oldWidth) > 1 || Math.abs(tvState.screenHeight - oldHeight) > 1) {
+                 const now = Date.now();
                 tvState.boxes.forEach(box => {
                     if (box.element) {
                         box.element.style.width = `${tvState.dynamicBoxWidth}px`;
                         box.element.style.height = `${tvState.dynamicBoxHeight}px`;
                     }
-                    box.x = Math.max(0, Math.min(box.x ?? tvState.screenWidth/2, tvState.screenWidth - tvState.dynamicBoxWidth));
-                    box.y = Math.max(0, Math.min(box.y ?? tvState.screenHeight/2, tvState.screenHeight - tvState.dynamicBoxHeight));
+                    if (box.burnEndTime === null || now >= box.burnEndTime) {
+                        box.x = Math.max(0, Math.min(box.x ?? tvState.screenWidth/2, tvState.screenWidth - tvState.dynamicBoxWidth));
+                        box.y = Math.max(0, Math.min(box.y ?? tvState.screenHeight/2, tvState.screenHeight - tvState.dynamicBoxHeight));
+                    }
                      if (box.element) {
-                         box.element.style.transform = `translate(${box.x}px, ${box.y}px)`;
+                         box.element.style.setProperty('--tx', `${box.x}px`);
+                         box.element.style.setProperty('--ty', `${box.y}px`);
+                         box.element.style.transform = `translate(var(--tx), var(--ty))`;
                      }
                 });
             }
@@ -692,13 +977,23 @@
                  }
                  return;
              }
+            const now = Date.now();
             tvState.boxes.forEach(box => {
-                box.x = Math.max(0, Math.min(box.x ?? tvState.screenWidth/2, tvState.screenWidth - tvState.dynamicBoxWidth));
-                box.y = Math.max(0, Math.min(box.y ?? tvState.screenHeight/2, tvState.screenHeight - tvState.dynamicBoxHeight));
-                if (box.element) {
-                    box.element.style.transform = `translate(${box.x}px, ${box.y}px)`;
-                } else {
+                 if (box.burnEndTime === null || now >= box.burnEndTime) {
+                    box.x = Math.max(0, Math.min(box.x ?? tvState.screenWidth/2, tvState.screenWidth - tvState.dynamicBoxWidth));
+                    box.y = Math.max(0, Math.min(box.y ?? tvState.screenHeight/2, tvState.screenHeight - tvState.dynamicBoxHeight));
+                 }
+                if (!box.element) {
                     box.element = createBoxElement(tvState, box);
+                }
+                 if (box.element) {
+                    box.element.style.setProperty('--tx', `${box.x}px`);
+                    box.element.style.setProperty('--ty', `${box.y}px`);
+                    box.element.style.transform = `translate(var(--tx), var(--ty))`;
+                 }
+                if ((box.burnEndTime === null || now >= box.burnEndTime) && box.element) {
+                    box.element.classList.remove('screen-burn-effect');
+                    box.element.classList.remove('logo-shake');
                 }
             });
         }
@@ -707,6 +1002,7 @@
         function gameLoop(timestamp) {
             if (document.hidden) { return; }
 
+            const now = Date.now();
             if (!lastTimestamp) { lastTimestamp = timestamp; return; }
             const deltaTime = Math.min(0.1, (timestamp - lastTimestamp) / 1000);
             lastTimestamp = timestamp;
@@ -715,16 +1011,18 @@
                  if (!tvState.screenWidth || tvState.screenWidth <= 0) {
                     resizeTvScreen(tvState);
                  } else {
-                    updateSingleTv(tvState, tvIndex, deltaTime, timestamp);
+                    updateSingleTv(tvState, tvIndex, deltaTime, timestamp, now);
                  }
              });
 
             updateTotalHitsDisplay();
             updateAllTvGlows();
             checkMetaButtonVisibility();
+            updateScreenBurnButtonState(now);
+            updateCornerBetButtonState();
 
             if (upgradeModal.classList.contains('show')) {
-                hitsThresholdCache = {}; // Clear threshold cache at the start of the update relevant to the modal
+                hitsThresholdCache = {};
                 if (selectedTvIndex !== -1) {
                     const tvState = globalState.tvStates[selectedTvIndex];
                     if (tvState) updateModalTvStats(tvState);
@@ -732,18 +1030,19 @@
                 } else {
                     modalTvStats.textContent = `Static Charges: ${formatScore(globalState.systemStaticCharges)}`;
                     updateMetaUpgradeButtonsIfVisible();
-                    updateRebootPreviewIfVisible(); // This now includes progress bar update
+                    updateRebootPreviewIfVisible();
                 }
             }
 
-            const now = Date.now();
-            if (now - lastSaveTime > 5000) {
+            const currentTimeForSave = Date.now();
+            if (currentTimeForSave - lastSaveTime > 5000) {
                 saveGame();
-                lastSaveTime = now;
+                lastSaveTime = currentTimeForSave;
             }
         }
 
-        function updateSingleTv(tvState, tvIndex, deltaTime, timestamp) {
+        // --- updateSingleTv ---
+        function updateSingleTv(tvState, tvIndex, deltaTime, timestamp, now) {
              if (!tvState.screenWidth || !tvState.screenHeight || !tvState.dynamicBoxWidth || !tvState.dynamicBoxHeight || tvState.screenWidth <= 0 || tvState.screenHeight <= 0) {
                  return;
              }
@@ -755,175 +1054,308 @@
             let cornerHitData = [];
             let boxCollisionsThisFrame = [];
             let wallHitData = [];
+            let burnHitData = [];
+            let betResolvedThisFrame = false;
 
-            tvState.boxes.forEach(box => {
+            // --- Corner Bet Timeout Check ---
+            if (globalState.isCornerBetActive && !betResolvedThisFrame) {
+                if (now > globalState.cornerBetActivationTimestamp + CORNER_BET_TIMEOUT_MS) {
+                    resolveCornerBet(false); // LOST due to timeout
+                    betResolvedThisFrame = true;
+                }
+            }
+
+            // --- Box Update Loop ---
+            for (const box of tvState.boxes) {
+                 if (betResolvedThisFrame) break;
+
                  if (!box.element) {
                      box.element = createBoxElement(tvState, box);
-                     if(!box.element) return;
-                     box.element.style.transform = `translate(${box.x}px, ${box.y}px)`;
-                  }
+                     if(!box.element) continue;
+                 }
+                 box.element.style.setProperty('--tx', `${box.x}px`);
+                 box.element.style.setProperty('--ty', `${box.y}px`);
 
-                if (isNaN(box.vx) || isNaN(box.vy)) { box.vx = (Math.random()-0.5)*currentSpeed*0.5; box.vy = (Math.random()-0.5)*currentSpeed*0.5; };
-                let boxVX = box.vx; let boxVY = box.vy;
-                const speedMagnitude = Math.sqrt(boxVX**2 + boxVY**2);
-                if (speedMagnitude > 0.01 && Math.abs(speedMagnitude - currentSpeed) > 0.1 * currentSpeed) {
-                    const sf = currentSpeed/speedMagnitude;
-                    boxVX*=(isNaN(sf)?1:sf); boxVY*=(isNaN(sf)?1:sf);
-                } else if (speedMagnitude < 0.1*currentSpeed && currentSpeed > 0.1) {
-                    const a = Math.random()*Math.PI*2;
-                    boxVX=Math.cos(a)*currentSpeed*0.5; boxVY=Math.sin(a)*currentSpeed*0.5;
+                 const isBurning = box.burnEndTime !== null && now < box.burnEndTime;
+
+                 // --- Screen Burn Logic ---
+                 if (isBurning) {
+                     if (box.element) {
+                         box.element.classList.add('screen-burn-effect');
+                         if (!box.element.classList.contains('logo-shake')) {
+                              box.element.classList.add('logo-shake');
+                              setTimeout(() => {
+                                  if (box.element) { box.element.classList.remove('logo-shake'); }
+                              }, LOGO_SHAKE_ANIMATION_DURATION);
+                         }
+                     }
+                     let baseBurnHitAmount = tvState.hitValue;
+                     const cornersSuckLevel = globalState.metaLevels.cornersSuckBonus;
+                     // Apply Corners Suck to Burn Hits
+                     if (cornersSuckLevel > 0) {
+                         if (!tvState.lastCornerHitTimestamp) { tvState.lastCornerHitTimestamp = now; }
+                         const elapsedMs = now - tvState.lastCornerHitTimestamp;
+                         const bonusRatio = Math.min(CORNERS_SUCK_MAX_MULTIPLIER - 1, (elapsedMs / CORNERS_SUCK_TIME_SCALE_FACTOR) * (cornersSuckLevel * CORNERS_SUCK_LEVEL_SCALE_FACTOR));
+                         baseBurnHitAmount *= (1 + bonusRatio);
+                     }
+                     const singleBurnHitValue = Math.ceil(baseBurnHitAmount * globalState.synergyBonus * devSpeedFactor);
+                     const effectiveHitsPerSecondDuringBurn = singleBurnHitValue * SCREEN_BURN_EFFECTIVE_HPS_FACTOR;
+                     const totalBurnHitsValueThisFrame = Math.max(1, Math.floor(effectiveHitsPerSecondDuringBurn * deltaTime));
+                     if (totalBurnHitsValueThisFrame > 0) {
+                         addTvHitScore(totalBurnHitsValueThisFrame); // Burn hits don't affect bet
+                         if (Math.random() < 0.1) {
+                            const popupX = box.x + effectiveBoxWidth / 2;
+                            const popupY = box.y - (effectiveBoxHeight * 0.1);
+                            burnHitData.push({ x: popupX, y: popupY, amount: singleBurnHitValue });
+                         }
+                     }
+                 } else {
+                      // --- Not Burning ---
+                     if (box.burnEndTime !== null && now >= box.burnEndTime) {
+                         box.burnEndTime = null;
+                         if (box.element) {
+                             box.element.classList.remove('screen-burn-effect');
+                             box.element.classList.remove('logo-shake');
+                         }
+                     }
+
+                     // --- Normal Movement & Wall Collision ---
+                     if (isNaN(box.vx) || isNaN(box.vy)) { box.vx = (Math.random()-0.5)*currentSpeed*0.5; box.vy = (Math.random()-0.5)*currentSpeed*0.5; };
+                     let boxVX = box.vx; let boxVY = box.vy;
+                     const speedMagnitude = Math.sqrt(boxVX**2 + boxVY**2);
+                     if (speedMagnitude > 0.01 && Math.abs(speedMagnitude - currentSpeed) > 0.1 * currentSpeed) {
+                         const sf = currentSpeed/speedMagnitude;
+                         boxVX*=(isNaN(sf)?1:sf); boxVY*=(isNaN(sf)?1:sf);
+                     } else if (speedMagnitude < 0.1*currentSpeed && currentSpeed > 0.1) {
+                         const a = Math.random()*Math.PI*2;
+                         boxVX=Math.cos(a)*currentSpeed*0.5; boxVY=Math.sin(a)*currentSpeed*0.5;
+                     }
+
+                     let deltaX = boxVX * deltaTime * 60; let deltaY = boxVY * deltaTime * 60;
+                     deltaX = Math.max(-effectiveBoxWidth*0.8,Math.min(effectiveBoxWidth*0.8,deltaX));
+                     deltaY = Math.max(-effectiveBoxHeight*0.8,Math.min(effectiveBoxHeight*0.8,deltaY));
+                     box.x += deltaX; box.y += deltaY;
+
+                     let hitWall=false; let hitX=false, hitY=false; let hitSide = '';
+                     if (box.x <= 0 && boxVX < 0) { box.x = 0+Math.random()*0.1; boxVX = Math.abs(boxVX); hitWall=true; hitX=true; hitSide='left';}
+                     else if (box.x >= screenWidth-effectiveBoxWidth && boxVX > 0) { box.x = screenWidth-effectiveBoxWidth-Math.random()*0.1; boxVX = -Math.abs(boxVX); hitWall=true; hitX=true; hitSide='right';}
+                     if (box.y <= 0 && boxVY < 0) { box.y = 0+Math.random()*0.1; boxVY = Math.abs(boxVY); hitWall=true; hitY=true; hitSide='top';}
+                     else if (box.y >= screenHeight-effectiveBoxHeight && boxVY > 0) { box.y = screenHeight-effectiveBoxHeight-Math.random()*0.1; boxVY = -Math.abs(boxVY); hitWall=true; hitY=true; hitSide='bottom';}
+
+                     // --- Handle Wall Hit ---
+                     if (hitWall) {
+                         if (box.element) box.element.style.backgroundColor = getRandomColor();
+
+                         const cornerThreshold = Math.min(1.5, effectiveBoxWidth * 0.03, effectiveBoxHeight * 0.03);
+                         const isNearLeft = box.x <= cornerThreshold; const isNearRight = box.x >= screenWidth-effectiveBoxWidth-cornerThreshold;
+                         const isNearTop = box.y <= cornerThreshold; const isNearBottom = box.y >= screenHeight-effectiveBoxHeight-cornerThreshold;
+                         const isCorner = (isNearLeft || isNearRight) && (isNearTop || isNearBottom);
+
+                         // --- Corner Hit Logic ---
+                         if (isCorner && hitX && hitY) {
+                            tvState.lastCornerHitTimestamp = now; // Reset timestamp
+                            let cornerX = isNearLeft ? 0 : screenWidth;
+                            let cornerY = isNearTop ? 0 : screenHeight;
+                            const escapeFactor = 1.08;
+                            if (isNearLeft) boxVX=Math.abs(boxVX)*escapeFactor; else boxVX=-Math.abs(boxVX)*escapeFactor;
+                            if (isNearTop) boxVY=Math.abs(boxVY)*escapeFactor; else boxVY=-Math.abs(boxVY)*escapeFactor;
+
+                            if (globalState.isCornerBetActive && !betResolvedThisFrame) {
+                                resolveCornerBet(true); // WIN!
+                                betResolvedThisFrame = true;
+                            } else if (!globalState.isCornerBetActive) {
+                                const finalCornerBonus = Math.ceil(tvState.cornerHitBaseBonus * tvState.cornerHitMultiplier * globalState.synergyBonus * devSpeedFactor);
+                                addTvHitScore(finalCornerBonus);
+                                cornerHitData.push({ x: cornerX, y: cornerY, boxId: box.id, bonusAmount: finalCornerBonus });
+                            }
+                         }
+                         // --- Regular Wall Hit Logic ---
+                         else {
+                            // Non-corner wall hit does NOT resolve bet.
+                            // Only score/effect if bet is NOT active.
+                            if (!globalState.isCornerBetActive) {
+                                 let baseWallHitAmount = tvState.hitValue;
+                                 const cornersSuckLevel = globalState.metaLevels.cornersSuckBonus;
+                                 // Apply Corners Suck to Wall Hits
+                                 if (cornersSuckLevel > 0) {
+                                     if (!tvState.lastCornerHitTimestamp) { tvState.lastCornerHitTimestamp = now; }
+                                     const elapsedMs = now - tvState.lastCornerHitTimestamp;
+                                     const bonusRatio = Math.min(CORNERS_SUCK_MAX_MULTIPLIER - 1, (elapsedMs / CORNERS_SUCK_TIME_SCALE_FACTOR) * (cornersSuckLevel * CORNERS_SUCK_LEVEL_SCALE_FACTOR));
+                                     baseWallHitAmount *= (1 + bonusRatio);
+                                 }
+                                 const finalWallHitAmount = Math.ceil(baseWallHitAmount * globalState.synergyBonus * devSpeedFactor);
+                                 addTvHitScore(finalWallHitAmount);
+
+                                 let popupX = box.x + effectiveBoxWidth / 2; let popupY = box.y + effectiveBoxHeight / 2;
+                                 if (hitSide === 'left') popupX = effectiveBoxWidth * 0.5; else if (hitSide === 'right') popupX = screenWidth - effectiveBoxWidth * 0.5;
+                                 if (hitSide === 'top') popupY = effectiveBoxHeight * 0.5; else if (hitSide === 'bottom') popupY = screenHeight - effectiveBoxHeight * 0.5;
+                                 wallHitData.push({ x: popupX, y: popupY, amount: finalWallHitAmount });
+                             }
+                         }
+                     }
+                     box.vx = boxVX; box.vy = boxVY;
+                     box.x = Math.max(0, Math.min(box.x, screenWidth - effectiveBoxWidth));
+                     box.y = Math.max(0, Math.min(box.y, screenHeight - effectiveBoxHeight));
+                 } // End non-burning block
+            } // End box loop
+
+            // --- Box-on-box collision ---
+            if (!betResolvedThisFrame) {
+                for (let i = 0; i < tvState.boxes.length; i++) {
+                    if (!tvState.boxes[i].element) continue;
+                    for (let j = i + 1; j < tvState.boxes.length; j++) {
+                       if (!tvState.boxes[j].element) continue;
+
+                       const b1 = tvState.boxes[i]; const b2 = tvState.boxes[j];
+                       const b1IsBurning = b1.burnEndTime !== null && now < b1.burnEndTime;
+                       const b2IsBurning = b2.burnEndTime !== null && now < b2.burnEndTime;
+                       if (b1IsBurning && b2IsBurning) continue;
+
+                       const b1CenterX = b1.x + effectiveBoxWidth / 2; const b1CenterY = b1.y + effectiveBoxHeight / 2;
+                       const b2CenterX = b2.x + effectiveBoxWidth / 2; const b2CenterY = b2.y + effectiveBoxHeight / 2;
+                       const dx = b2CenterX - b1CenterX; const dy = b2CenterY - b1CenterY;
+                       const overlapX = effectiveBoxWidth - Math.abs(dx); const overlapY = effectiveBoxHeight - Math.abs(dy);
+
+                       if (overlapX > 0 && overlapY > 0) {
+                           const collisionKey = getBoxCollisionKey(b1.id, b2.id);
+                           const lastCollisionTime = boxCollisionTimers[collisionKey] || 0;
+                           if (timestamp - lastCollisionTime < BOX_COLLISION_COOLDOWN_MS) continue;
+                           boxCollisionTimers[collisionKey] = timestamp;
+
+                           let collisionOccurred = false;
+                           let collisionX = b1CenterX + dx / 2; let collisionY = b1CenterY + dy / 2;
+
+                           // Collision does NOT resolve bet.
+                           // Only process physics/scoring if bet is NOT active.
+                           if (!globalState.isCornerBetActive) {
+                               if (b1IsBurning || b2IsBurning) { // Collision with burning box
+                                   const movingBox = b1IsBurning ? b2 : b1;
+                                   const isB1Moving = !b1IsBurning;
+                                   if (overlapX < overlapY) {
+                                       const separationAmount = overlapX * 0.5 + BOX_COLLISION_SEPARATION_BUFFER; const sign = dx < 0 ? -1 : 1;
+                                       movingBox.x += separationAmount * (isB1Moving ? -sign : sign) * 2;
+                                       movingBox.vx = -movingBox.vx * COLLISION_ENERGY_LOSS;
+                                   } else {
+                                       const separationAmount = overlapY * 0.5 + BOX_COLLISION_SEPARATION_BUFFER; const sign = dy < 0 ? -1 : 1;
+                                       movingBox.y += separationAmount * (isB1Moving ? -sign : sign) * 2;
+                                       movingBox.vy = -movingBox.vy * COLLISION_ENERGY_LOSS;
+                                   }
+                                    movingBox.x = Math.max(0, Math.min(movingBox.x, screenWidth - effectiveBoxWidth));
+                                    movingBox.y = Math.max(0, Math.min(movingBox.y, screenHeight - effectiveBoxHeight));
+                                   collisionOccurred = true;
+                               } else { // Normal collision
+                                   if (overlapX < overlapY) {
+                                       const separationAmount = overlapX * 0.5 + BOX_COLLISION_SEPARATION_BUFFER; const sign = dx < 0 ? -1 : 1;
+                                       b1.x -= separationAmount * sign; b2.x += separationAmount * sign;
+                                       const v1x = b1.vx; b1.vx = b2.vx * COLLISION_ENERGY_LOSS; b2.vx = v1x * COLLISION_ENERGY_LOSS;
+                                   } else {
+                                       const separationAmount = overlapY * 0.5 + BOX_COLLISION_SEPARATION_BUFFER; const sign = dy < 0 ? -1 : 1;
+                                       b1.y -= separationAmount * sign; b2.y += separationAmount * sign;
+                                       const v1y = b1.vy; b1.vy = b2.vy * COLLISION_ENERGY_LOSS; b2.vy = v1y * COLLISION_ENERGY_LOSS;
+                                   }
+                                   b1.x = Math.max(0, Math.min(b1.x, screenWidth - effectiveBoxWidth)); b1.y = Math.max(0, Math.min(b1.y, screenHeight - effectiveBoxHeight));
+                                   b2.x = Math.max(0, Math.min(b2.x, screenWidth - effectiveBoxWidth)); b2.y = Math.max(0, Math.min(b2.y, screenHeight - effectiveBoxHeight));
+                                   collisionOccurred = true;
+                               }
+
+                               if(collisionOccurred) {
+                                    boxCollisionsThisFrame.push({ b1Id: b1.id, b2Id: b2.id, x: collisionX, y: collisionY });
+                               }
+                           }
+                       }
+                   }
                 }
-
-                let deltaX = boxVX * deltaTime * 60;
-                let deltaY = boxVY * deltaTime * 60;
-                deltaX = Math.max(-effectiveBoxWidth*0.8,Math.min(effectiveBoxWidth*0.8,deltaX));
-                deltaY = Math.max(-effectiveBoxHeight*0.8,Math.min(effectiveBoxHeight*0.8,deltaY));
-                box.x += deltaX;
-                box.y += deltaY;
-
-                let hitWall=false; let hitX=false, hitY=false; let hitSide = '';
-                if (box.x <= 0 && boxVX < 0) { box.x = 0+Math.random()*0.1; boxVX = Math.abs(boxVX); hitWall=true; hitX=true; hitSide='left';}
-                else if (box.x >= screenWidth-effectiveBoxWidth && boxVX > 0) { box.x = screenWidth-effectiveBoxWidth-Math.random()*0.1; boxVX = -Math.abs(boxVX); hitWall=true; hitX=true; hitSide='right';}
-                if (box.y <= 0 && boxVY < 0) { box.y = 0+Math.random()*0.1; boxVY = Math.abs(boxVY); hitWall=true; hitY=true; hitSide='top';}
-                else if (box.y >= screenHeight-effectiveBoxHeight && boxVY > 0) { box.y = screenHeight-effectiveBoxHeight-Math.random()*0.1; boxVY = -Math.abs(boxVY); hitWall=true; hitY=true; hitSide='bottom';}
-
-                if (hitWall) {
-                    if (box.element) box.element.style.backgroundColor = getRandomColor();
-                    const cornerThreshold = Math.min(1.5, effectiveBoxWidth * 0.03, effectiveBoxHeight * 0.03);
-                    const isNearLeft = box.x <= cornerThreshold;
-                    const isNearRight = box.x >= screenWidth-effectiveBoxWidth-cornerThreshold;
-                    const isNearTop = box.y <= cornerThreshold;
-                    const isNearBottom = box.y >= screenHeight-effectiveBoxHeight-cornerThreshold;
-                    const isCorner = (isNearLeft || isNearRight) && (isNearTop || isNearBottom);
-
-                    if (isCorner && hitX && hitY) {
-                        tvState.lastCornerHitTimestamp = Date.now();
-
-                        let cornerX = isNearLeft ? 0 : screenWidth;
-                        let cornerY = isNearTop ? 0 : screenHeight;
-                        const escapeFactor = 1.08;
-                        if (isNearLeft) boxVX=Math.abs(boxVX)*escapeFactor; else boxVX=-Math.abs(boxVX)*escapeFactor;
-                        if (isNearTop) boxVY=Math.abs(boxVY)*escapeFactor; else boxVY=-Math.abs(boxVY)*escapeFactor;
-
-                        const finalCornerBonus = Math.ceil(tvState.cornerHitBaseBonus * tvState.cornerHitMultiplier * globalState.synergyBonus * devSpeedFactor);
-                        addTvHitScore(finalCornerBonus);
-
-                        cornerHitData.push({ x: cornerX, y: cornerY, boxId: box.id, bonusAmount: finalCornerBonus });
-                    }
-                    else {
-                        let baseWallHitAmount = tvState.hitValue;
-
-                        const cornersSuckLevel = globalState.metaLevels.cornersSuckBonus;
-                        let cornersSuckMultiplier = 1.0;
-                        if (cornersSuckLevel > 0 && tvState.lastCornerHitTimestamp) {
-                            const elapsedMs = Date.now() - tvState.lastCornerHitTimestamp;
-                            const bonusRatio = Math.min(
-                                CORNERS_SUCK_MAX_MULTIPLIER - 1,
-                                (elapsedMs / CORNERS_SUCK_TIME_SCALE_FACTOR) * (cornersSuckLevel * CORNERS_SUCK_LEVEL_SCALE_FACTOR)
-                            );
-                            cornersSuckMultiplier = 1 + bonusRatio;
-                            baseWallHitAmount *= cornersSuckMultiplier;
-                        }
-                        const finalWallHitAmount = Math.ceil(baseWallHitAmount * globalState.synergyBonus * devSpeedFactor);
-                        addTvHitScore(finalWallHitAmount);
-
-                        let popupX = box.x + effectiveBoxWidth / 2;
-                        let popupY = box.y + effectiveBoxHeight / 2;
-                        if (hitSide === 'left') popupX = effectiveBoxWidth * 0.5; else if (hitSide === 'right') popupX = screenWidth - effectiveBoxWidth * 0.5;
-                        if (hitSide === 'top') popupY = effectiveBoxHeight * 0.5; else if (hitSide === 'bottom') popupY = screenHeight - effectiveBoxHeight * 0.5;
-
-                        wallHitData.push({ x: popupX, y: popupY, amount: finalWallHitAmount });
-                    }
-                }
-                box.vx = boxVX; box.vy = boxVY;
-                box.x = Math.max(0, Math.min(box.x, screenWidth - effectiveBoxWidth));
-                box.y = Math.max(0, Math.min(box.y, screenHeight - effectiveBoxHeight));
-            });
-
-            // Box-on-box collision
-            for (let i = 0; i < tvState.boxes.length; i++) {
-                 if (!tvState.boxes[i].element) continue;
-                 for (let j = i + 1; j < tvState.boxes.length; j++) {
-                    if (!tvState.boxes[j].element) continue;
-
-                    const b1 = tvState.boxes[i]; const b2 = tvState.boxes[j];
-                    const b1CenterX = b1.x + effectiveBoxWidth / 2; const b1CenterY = b1.y + effectiveBoxHeight / 2;
-                    const b2CenterX = b2.x + effectiveBoxWidth / 2; const b2CenterY = b2.y + effectiveBoxHeight / 2;
-                    const dx = b2CenterX - b1CenterX; const dy = b2CenterY - b1CenterY;
-                    const overlapX = effectiveBoxWidth - Math.abs(dx);
-                    const overlapY = effectiveBoxHeight - Math.abs(dy);
-
-                    if (overlapX > 0 && overlapY > 0) {
-                        const collisionKey = getBoxCollisionKey(b1.id, b2.id);
-                        const lastCollisionTime = boxCollisionTimers[collisionKey] || 0;
-                        if (timestamp - lastCollisionTime < BOX_COLLISION_COOLDOWN_MS) continue;
-                        boxCollisionTimers[collisionKey] = timestamp;
-
-                        if (overlapX < overlapY) {
-                            const separationAmount = overlapX * 0.5 + BOX_COLLISION_SEPARATION_BUFFER; const sign = dx < 0 ? -1 : 1;
-                            b1.x -= separationAmount * sign; b2.x += separationAmount * sign;
-                            const v1x = b1.vx; b1.vx = b2.vx * COLLISION_ENERGY_LOSS; b2.vx = v1x * COLLISION_ENERGY_LOSS;
-                        } else {
-                            const separationAmount = overlapY * 0.5 + BOX_COLLISION_SEPARATION_BUFFER; const sign = dy < 0 ? -1 : 1;
-                            b1.y -= separationAmount * sign; b2.y += separationAmount * sign;
-                            const v1y = b1.vy; b1.vy = b2.vy * COLLISION_ENERGY_LOSS; b2.vy = v1y * COLLISION_ENERGY_LOSS;
-                        }
-                        b1.x = Math.max(0, Math.min(b1.x, screenWidth - effectiveBoxWidth)); b1.y = Math.max(0, Math.min(b1.y, screenHeight - effectiveBoxHeight));
-                        b2.x = Math.max(0, Math.min(b2.x, screenWidth - effectiveBoxWidth)); b2.y = Math.max(0, Math.min(b2.y, screenHeight - effectiveBoxHeight));
-
-                        boxCollisionsThisFrame.push({ b1Id: b1.id, b2Id: b2.id, x: b1CenterX + dx / 2, y: b1CenterY + dy / 2 });
-                    }
-                }
             }
 
-            // Process Hit Effects
-            if (wallHitData.length > 0) {
-                 wallHitData.forEach(hit => {
-                    showFloatText(tvState, `+${formatScore(hit.amount)}`, hit.x, hit.y, 'wall');
-                 });
-            }
-            if (cornerHitData.length > 0) {
-                cornerHitData.forEach(hit => {
-                    createSparkParticles(tvState, hit.x, hit.y);
-                    showFloatText(tvState, `CORNER HIT!\n+${formatScore(hit.bonusAmount)}`, tvState.screenWidth/2, tvState.screenHeight/2, 'corner');
-                });
-            }
-            if (boxCollisionsThisFrame.length > 0) {
-                let collisionValue = tvState.boxCollisionValue;
-                let finalCollisionValue = Math.ceil(collisionValue * globalState.synergyBonus * devSpeedFactor);
-                let totalCollisionBonus = boxCollisionsThisFrame.length * finalCollisionValue;
-                addTvHitScore(totalCollisionBonus);
-                boxCollisionsThisFrame.forEach(hit => {
-                    showFloatText(tvState, `+${formatScore(finalCollisionValue)}`, hit.x, hit.y, 'collision');
-                });
-            }
-
-            // Update Element Positions
+            // --- Update Element Positions ---
             tvState.boxes.forEach(box => {
                 if (box.element) {
-                     box.element.style.transform = `translate(${box.x}px, ${box.y}px)`;
+                     box.element.style.setProperty('--tx', `${box.x}px`);
+                     box.element.style.setProperty('--ty', `${box.y}px`);
                 }
             });
-        }
+
+            // --- Process Hit Effects (Only if bet NOT resolved AND NOT active) ---
+            if (!betResolvedThisFrame && !globalState.isCornerBetActive) {
+                if (wallHitData.length > 0) {
+                     wallHitData.forEach(hit => {
+                        showFloatText(tvState, `+${formatScore(hit.amount)}`, hit.x, hit.y, 'wall');
+                     });
+                }
+                if (cornerHitData.length > 0) {
+                    cornerHitData.forEach(hit => {
+                        createSparkParticles(tvState, hit.x, hit.y);
+                        showFloatText(tvState, `CORNER HIT!\n+${formatScore(hit.bonusAmount)}`, tvState.screenWidth/2, tvState.screenHeight/2, 'corner');
+                    });
+                }
+                if (boxCollisionsThisFrame.length > 0) {
+                    let collisionValue = tvState.boxCollisionValue;
+                    let finalCollisionValue = Math.ceil(collisionValue * globalState.synergyBonus * devSpeedFactor);
+                    let totalCollisionBonus = boxCollisionsThisFrame.length * finalCollisionValue;
+                    addTvHitScore(totalCollisionBonus);
+                    boxCollisionsThisFrame.forEach(hit => {
+                        showFloatText(tvState, `+${formatScore(finalCollisionValue)}`, hit.x, hit.y, 'collision');
+                    });
+                }
+            }
+            // Show burn text regardless of bet state
+            if (burnHitData.length > 0) {
+                burnHitData.forEach(hit => {
+                   showFloatText(tvState, `+${formatScore(hit.amount)}🔥`, hit.x, hit.y, 'burn');
+                });
+           }
+        } // End updateSingleTv
 
         // --- Scoring & Stats ---
         function addTvHitScore(finalAmount) {
             if (finalAmount <= 0 || isNaN(finalAmount)) return;
+            if (globalState.isCornerBetActive) { return; } // Bet handles scoring
             const effectiveGain = Math.ceil(finalAmount);
             if (effectiveGain <= 0) return;
-
             globalState.totalSessionHits += effectiveGain;
             globalState.lifetimeSessionHits += effectiveGain;
         }
-        function updateModalTvStats(tvState) { if (!modalTvStats || !tvState) return; const currentMaxBoxes = globalState.maxBoxesPerTv; modalTvStats.textContent = `TV #${tvState.id} | Logos: ${tvState.boxes.length}/${currentMaxBoxes}`; }
+        function updateModalTvStats(tvState) { if (!modalTvStats || !tvState) return; const currentMaxBoxes = globalState.maxBoxesPerTv; modalTvStats.textContent = `TV #${tvState.id + 1} | Logos: ${tvState.boxes.length}/${currentMaxBoxes}`; }
         function updateTotalHitsDisplay() { if (totalHitsDisplay) { totalHitsDisplay.textContent = `Hits: ${formatScore(globalState.totalSessionHits)}`; } }
 
         // --- Effects & Feedback ---
         function createSparkParticles(tvState, cornerX, cornerY) { if (!tvState.elements || !tvState.elements.screen) return; const screenElement = tvState.elements.screen; const particleCount = 12; const particleLifespan = 650; const particleSpread = tvState.screenWidth * 0.18; for (let i = 0; i < particleCount; i++) { const p = document.createElement('div'); p.classList.add('spark-particle'); p.style.left = `${cornerX}px`; p.style.top = `${cornerY}px`; screenElement.appendChild(p); const ang = Math.random()*Math.PI*2; const dist = Math.random()*particleSpread; let dX=Math.cos(ang); let dY=Math.sin(ang); if(cornerX<tvState.screenWidth/2) dX=Math.abs(dX); else dX=-Math.abs(dX); if(cornerY<tvState.screenHeight/2) dY=Math.abs(dY); else dY=-Math.abs(dY); const tX=dX*dist; const tY=dY*dist; requestAnimationFrame(()=>{p.style.transform=`translate(${tX}px, ${tY}px) scale(0.5)`; p.style.opacity=0; }); setTimeout(()=>{ p.remove(); }, particleLifespan); } }
         function showNotification(message) { if (!notificationElement) return; notificationElement.textContent = message; notificationElement.className = 'show'; if (notificationElement.timer) clearTimeout(notificationElement.timer); notificationElement.timer = setTimeout(() => { notificationElement.className = ''; notificationElement.timer = null; }, 2800); }
-        function showFloatText(tvState, text, x, y, type = 'corner' | 'collision' | 'wall') { if (!tvState.elements || !tvState.elements.screen) return; const screenElement = tvState.elements.screen; const textElement = document.createElement('div'); textElement.classList.add('float-text'); let textClass = ''; let duration = 1000; switch(type) { case 'corner': textClass = 'corner-hit-text'; duration = 1300; break; case 'collision': textClass = 'collision-text'; duration = 900; textElement.style.left = `${x}px`; textElement.style.top = `${y}px`; break; case 'wall': textClass = 'wall-hit-text'; duration = 800; textElement.style.left = `${x}px`; textElement.style.top = `${y}px`; break; default: return; } textElement.classList.add(textClass); textElement.textContent = text; screenElement.appendChild(textElement); setTimeout(() => { if (textElement.parentNode) textElement.remove(); }, duration); }
+        function showFloatText(tvState, text, x, y, type = 'corner' | 'collision' | 'wall' | 'burn') {
+             if (!tvState.elements || !tvState.elements.screen) return;
+             if (globalState.isCornerBetActive && type !== 'burn') return; // Don't show non-burn during bet
 
-        // --- Glow Logic (Controls Power Light) ---
+             const screenElement = tvState.elements.screen;
+             const textElement = document.createElement('div');
+             textElement.classList.add('float-text');
+             let textClass = ''; let duration = 1000;
+             switch(type) {
+                 case 'corner': textClass = 'corner-hit-text'; duration = 1300; textElement.style.left = `${x}px`; textElement.style.top = `${y}px`; break;
+                 case 'collision': textClass = 'collision-text'; duration = 900; textElement.style.left = `${x}px`; textElement.style.top = `${y}px`; break;
+                 case 'wall': textClass = 'wall-hit-text'; duration = 800; textElement.style.left = `${x}px`; textElement.style.top = `${y}px`; break;
+                 case 'burn': textClass = 'burn-hit-text'; duration = 600; textElement.style.left = `${x}px`; textElement.style.top = `${y}px`; break;
+                 default: console.warn("Unknown float text type:", type); return;
+             }
+             textElement.classList.add(textClass);
+             textElement.innerHTML = text;
+             screenElement.appendChild(textElement);
+             setTimeout(() => { if (textElement.parentNode) textElement.remove(); }, duration);
+        }
+        function showBetResultOverlay(message, amount, isWin) {
+            if (!betResultOverlay) return;
+            if (betResultTimeout) clearTimeout(betResultTimeout);
+            const sign = isWin ? '+' : '-';
+            const amountText = `(${sign}${formatScore(amount)})`;
+            betResultOverlay.innerHTML = `${message}<span class="bet-amount">${amountText}</span>`;
+            betResultOverlay.className = 'show';
+            betResultOverlay.classList.add(isWin ? 'win' : 'loss');
+            betResultTimeout = setTimeout(() => {
+                betResultOverlay.classList.remove('show');
+                betResultTimeout = null;
+            }, BET_RESULT_DISPLAY_MS);
+        }
+
+        // --- Glow Logic ---
         function checkTvAffordability(tvState) {
              if (!tvState) return false;
              const currentHits = globalState.totalSessionHits;
@@ -935,14 +1367,10 @@
                  else maxLevel = upgrade.maxLevel;
                  const isMaxLevel = (maxLevel !== undefined && level >= maxLevel);
                  if (isMaxLevel) continue;
-
                  let canPurchaseCheck = typeof upgrade.canPurchase === 'function' ? upgrade.canPurchase(tvState, level) : true;
                  if (!canPurchaseCheck) continue;
-
                  const cost = calculateCost(upgrade.baseCost, level, upgrade.costFactor, tvState.index);
-                 if (currentHits >= cost) {
-                     return true;
-                 }
+                 if (currentHits >= cost) { return true; }
              }
              return false;
         }
@@ -954,9 +1382,7 @@
                 frame.classList.toggle('can-upgrade-glow', canAfford);
             }
         }
-        function updateAllTvGlows() {
-             globalState.tvStates.forEach((tv, index) => updateTvGlow(index));
-        }
+        function updateAllTvGlows() { globalState.tvStates.forEach((tv, index) => updateTvGlow(index)); }
 
         // --- Upgrade Definitions ---
         const tvUpgrades = [
@@ -980,7 +1406,7 @@
              { id: 'metaStaticChargeGain', name: 'Static Charge Gain', baseCost: 3, costFactor: 2.2, getLevel: () => globalState.metaLevels.staticChargeGain, applyEffect: () => { globalState.metaLevels.staticChargeGain++; },
                getDescription: (gs, l, c) => `<strong>Static Charge Boost</strong><br>Lv ${l}: +${((deriveMetaStaticChargeMult(l+1)-1)*100).toFixed(0)}% Static Charges<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
              { id: 'metaAddTv', name: 'Add New TV', baseCost: 5, costFactor: 4.5, getLevel: () => globalState.tvStates.length, applyEffect: () => { addTv(); }, canPurchase: () => true,
-               getDescription: (gs, l, c) => `<strong>New Channel</strong><br>Unlock TV #${l+1}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
+               getDescription: (gs, l, c) => `<strong>New Channel</strong><br>Unlock TV #${l + 1}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
              { id: 'metaBaseSpeed', name: 'Base Speed', baseCost: 10, costFactor: 2.8, maxLevel: 15, getLevel: () => globalState.metaLevels.baseSpeed, applyEffect: () => { globalState.metaLevels.baseSpeed++; updateAllTvsPostMeta(); },
                getDescription: (gs, l, c, maxed) => `<strong>System Speed</strong><br>${maxed ? `Max Base Speed (Lv ${l})` : `Lv ${l}: +Base Speed All TVs`}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
              { id: 'metaBaseMaxBoxes', name: 'Global Capacity', baseCost: 15, costFactor: 3.5, maxLevel: MAX_BOXES_PER_TV,
@@ -988,10 +1414,32 @@
                 getDescription: (gs, l, c, maxed) => `<strong>More Room</strong><br>${maxed ? `Max Global Cap (${gs.maxBoxesPerTv})` : `Lv ${l}: +Global Max Logos (${deriveMetaBaseMaxBoxes(l+1)})`}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
              { id: 'metaTvSynergyBonus', name: 'TV Synergy', baseCost: 50, costFactor: 2.5, getLevel: () => globalState.metaLevels.tvSynergyBonus, applyEffect: () => { globalState.metaLevels.tvSynergyBonus++; recalculateGlobalSynergy(); updateMetaUpgradeButtonsIfVisible(); },
                getDescription: (gs, l, c) => { const nextLevel = l + 1; const nextPerTvBonus = deriveSynergyBonusPerTv(nextLevel); return `<strong>Teamwork!</strong><br>Lv ${l}: All Hits x${globalState.synergyBonus.toFixed(3)}<br>(+${(nextPerTvBonus*100).toFixed(2)}% per TV Next)<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>`; } },
-             { id: 'metaCornersSuck', name: 'Corners Suck', baseCost: 100, costFactor: 2.9,
-               getLevel: () => globalState.metaLevels.cornersSuckBonus,
-               applyEffect: () => { globalState.metaLevels.cornersSuckBonus++; },
+             { id: 'metaCornersSuck', name: 'Corners Suck', baseCost: 15, costFactor: 2.9,
+               getLevel: () => globalState.metaLevels.cornersSuckBonus, applyEffect: () => { globalState.metaLevels.cornersSuckBonus++; },
                getDescription: (gs, l, c) => { const maxBonusPercent = (CORNERS_SUCK_MAX_MULTIPLIER - 1) * 100; return `<strong>Corners Suck</strong><br>Lv ${l}: +Wall hits value over time (Max +${maxBonusPercent.toFixed(0)}%)<br>Resets on TV corner hit<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>`; }
+             },
+             { id: 'screenBurnAbility', name: 'Screen Burn', baseCost: 150, costFactor: 3.0,
+               getLevel: () => globalState.metaLevels.screenBurnLevel,
+               applyEffect: () => { globalState.metaLevels.screenBurnLevel++; updateScreenBurnButtonVisibility(); },
+               getDescription: (gs, l, c) => {
+                   let descriptionText = ''; const numLogosNext = l + 1;
+                   if (l === 0) { descriptionText = `<strong>Unlock: Screen Burn 🔥</strong><br>Burn ${numLogosNext} logo for ${SCREEN_BURN_DURATION_MS/1000}s.<br>`; }
+                   else { descriptionText = `<strong>Screen Burn 🔥</strong><br>Lv ${l}: Burn ${numLogosNext} logo${numLogosNext > 1 ? 's' : ''} for ${SCREEN_BURN_DURATION_MS/1000}s.<br>`; }
+                   descriptionText += `Rapidly generates Hits. x${SCREEN_BURN_EFFECTIVE_HPS_FACTOR.toFixed(1)}/sec.<br>Cooldown: ${SCREEN_BURN_COOLDOWN_SECONDS/60} min.<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>`;
+                   return descriptionText;
+               }
+             },
+             { id: 'cornerBetAbility', name: 'Corner Bet', baseCost: 50, costFactor: 3.2,
+               getLevel: () => globalState.metaLevels.cornerBetLevel,
+               applyEffect: () => { globalState.metaLevels.cornerBetLevel++; updateCornerBetButtonVisibility(); updateCornerBetButtonState(); },
+               getDescription: (gs, l, c) => {
+                   const currentMultiplier = deriveCornerBetMultiplier(l); const nextMultiplier = deriveCornerBetMultiplier(l + 1);
+                   let descriptionText = '';
+                   if (l === 0) { descriptionText = `<strong>Unlock: Corner Bet ?</strong><br>Bet ALL Hits on next hit OR corner hit within ${CORNER_BET_TIMEOUT_MS/1000}s.<br>Win: x${nextMultiplier} Hits! Lose: All Hits.<br>`; }
+                   else { descriptionText = `<strong>Corner Bet ?</strong><br>Lv ${l}: Win Multiplier x${currentMultiplier}<br>(Next: x${nextMultiplier})<br>Bet on corner hit within ${CORNER_BET_TIMEOUT_MS/1000}s.<br>`; }
+                   descriptionText += `Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>`;
+                   return descriptionText;
+               }
              },
         ];
 
@@ -1003,10 +1451,11 @@
         function deriveTvCollisionBonus(tvState, level) { return Math.max(0, Math.floor(50 + level * 1.5 + Math.pow(level, 1.5))); }
         function getCurrentTvSpeed(tvState) { return BASE_SPEED_CONSTANT * deriveTvSpeedFactor(tvState, tvState.upgrades.speed); }
         function deriveMetaStaticChargeMult(level) { return 1 + level * 0.07; }
-        function deriveMetaBaseSpeedFactor(level) { return 1 + level * 0.03; }
+        function deriveMetaBaseSpeedFactor(level) { return 1 + level * 0.05; } // FIX: Increased from 0.03
         function deriveMetaBaseMaxBoxes(level) { return 2 + level; }
-        function deriveSynergyBonusPerTv(level) { return level > 0 ? (level * 0.005) : 0; }
+        function deriveSynergyBonusPerTv(level) { return level > 0 ? (level * 0.008) : 0; } // FIX: Increased from 0.005
         function deriveSynergyBonus(level) { const perTvBonus = deriveSynergyBonusPerTv(level); const numTvs = globalState?.tvStates?.length ?? 0; return 1.0 + (numTvs * perTvBonus); }
+        function deriveCornerBetMultiplier(level) { if (level <= 0) return 0; return 8 + level * 2; }
 
         // --- Apply Upgrades ---
         function recalculateDerivedTvState(tvState) {
@@ -1014,18 +1463,38 @@
             tvState.cornerHitBaseBonus = deriveTvCornerFlatBonus(tvState, tvState.upgrades.cornerBonusFlat);
             tvState.cornerHitMultiplier = deriveTvCornerMultiplier(tvState, tvState.upgrades.cornerMultiplier);
             tvState.boxCollisionValue = deriveTvCollisionBonus(tvState, tvState.upgrades.boxCollisionValue);
+            // Apply meta speed factor when recalculating derived state
+            tvState.baseSpeedFactorMeta = deriveMetaBaseSpeedFactor(globalState.metaLevels.baseSpeed);
         }
         function recalculateGlobalSynergy() { globalState.synergyBonus = deriveSynergyBonus(globalState.metaLevels.tvSynergyBonus); }
-        function applyMetaUpgradesToTv(tvState) { tvState.baseSpeedFactorMeta = deriveMetaBaseSpeedFactor(globalState.metaLevels.baseSpeed); recalculateDerivedTvState(tvState); resizeTvScreen(tvState); }
-        function updateAllTvsPostMeta() { globalState.maxBoxesPerTv = deriveMetaBaseMaxBoxes(globalState.metaLevels.baseMaxBoxes); globalState.tvStates.forEach(tv => { applyMetaUpgradesToTv(tv); checkAndAdjustBoxPositions(tv.index); }); recalculateGlobalSynergy(); updateAllTvGlows(); }
+        function applyMetaUpgradesToTv(tvState) {
+            // This function now primarily handles calling recalculateDerivedTvState which includes meta speed factor
+            recalculateDerivedTvState(tvState);
+            // Optionally resize if needed, though usually done separately
+             // resizeTvScreen(tvState); // Can uncomment if needed, but recalculate handles speed factor now
+        }
+        function updateAllTvsPostMeta() {
+            globalState.maxBoxesPerTv = deriveMetaBaseMaxBoxes(globalState.metaLevels.baseMaxBoxes);
+            // Recalculate synergy first as it depends on TV count
+            recalculateGlobalSynergy();
+            // Apply meta speed factor and recalculate derived state for each TV
+            globalState.tvStates.forEach(tv => {
+                applyMetaUpgradesToTv(tv);
+                checkAndAdjustBoxPositions(tv.index);
+            });
+            // No need to recalculate synergy again here
+            updateAllTvGlows();
+        }
+
 
         // --- Upgrade UI & Modal Logic ---
         function openUpgradeModal(tvIndex = -1) {
-            selectedTvIndex = tvIndex; modalUpgradesContainer.innerHTML = ''; modalRebootContainer.innerHTML = ''; modalBuyAmountContainer.innerHTML = '';
+            selectedTvIndex = tvIndex;
+            modalUpgradesContainer.innerHTML = ''; modalRebootContainer.innerHTML = ''; modalBuyAmountContainer.innerHTML = '';
 
             if (tvIndex !== -1) {
                 const tvState = globalState.tvStates[tvIndex]; if (!tvState) return;
-                modalTitle.textContent = `TV #${tvState.id} Upgrades`;
+                modalTitle.textContent = `TV #${tvState.id + 1} Upgrades`;
                 updateModalTvStats(tvState);
                 renderBuyAmountButtons();
                 renderUpgradeSection(tvUpgrades, modalUpgradesContainer, 'hit', tvIndex);
@@ -1033,6 +1502,7 @@
                 modalTitle.textContent = 'Meta Upgrades & Reboot';
                 modalTvStats.textContent = `Static Charges: ${formatScore(globalState.systemStaticCharges)}`;
                 renderUpgradeSection(metaUpgrades, modalUpgradesContainer, 'meta');
+
                 const potentialGain = calculateStaticChargeGain(globalState.lifetimeSessionHits);
                 if (potentialGain > 0 || globalState.hasRebootedOnce) {
                     const rebootTemplate = document.getElementById('reboot-section-template');
@@ -1041,8 +1511,8 @@
                         const rebootBtn = clonedReboot.querySelector('#reboot-button');
                         if (rebootBtn) { rebootBtn.onclick = executeReboot; }
                         modalRebootContainer.appendChild(clonedReboot);
-                        hitsThresholdCache = {}; // Clear cache before first calculation
-                        updateRebootPreviewIfVisible(); // Includes progress bar update
+                        hitsThresholdCache = {};
+                        updateRebootPreviewIfVisible();
                     } else { console.error("Reboot template not found!"); }
                 }
             }
@@ -1083,34 +1553,20 @@
             }
 
             nextLevelCost = calculateCost(upgrade.baseCost, currentLevel, upgrade.costFactor, tvIndex);
-
             const maxIterations = (amountToTry === Infinity) ? MAX_BULK_BUY_CHECK : amountToTry;
             const flooredScore = Math.floor(currentScore);
 
             for (let i = 0; i < maxIterations; i++) {
                 const levelToCheck = currentLevel + levelsBought;
-
                 if (maxLevel !== undefined && levelToCheck >= maxLevel) { maxLevelReached = true; break; }
                 if (!(typeof upgrade.canPurchase === 'function' ? upgrade.canPurchase(tvState, levelToCheck) : true)) { maxLevelReached = true; break; }
-
                 const costForThisLevel = calculateCost(upgrade.baseCost, levelToCheck, upgrade.costFactor, tvIndex);
                 if (flooredScore >= totalCost + costForThisLevel) {
-                    totalCost += costForThisLevel;
-                    levelsBought++;
-                } else {
-                    break;
-                }
+                    totalCost += costForThisLevel; levelsBought++;
+                } else { break; }
             }
-
             const affordable = levelsBought > 0;
-
-            return {
-                levels: levelsBought,
-                totalCost: totalCost,
-                affordable: affordable,
-                isMaxLevel: isCurrentlyMaxed || (maxLevelReached && levelsBought === 0),
-                nextLevelCost: nextLevelCost
-            };
+            return { levels: levelsBought, totalCost: totalCost, affordable: affordable, isMaxLevel: isCurrentlyMaxed || (maxLevelReached && levelsBought === 0), nextLevelCost: nextLevelCost };
         }
 
         function renderUpgradeSection(upgrades, container, currencyType, tvIndex = -1) {
@@ -1124,9 +1580,7 @@
                  const currentLevel = upgrade.getLevel(stateForLevel);
                  let bulkInfo = { levels: 1, totalCost: 0, affordable: false, isMaxLevel: false, nextLevelCost: 0 };
                  let descriptionText = ''; let currencyClass = currencyType;
-                 let costToShow = 0;
-                 let levelText = '';
-                 let isCurrentlyMaxed = false;
+                 let costToShow = 0; let levelText = ''; let isCurrentlyMaxed = false;
 
                  let maxLevelCheck;
                  if (upgrade.id === 'multiBox' && tvState) maxLevelCheck = globalState.maxBoxesPerTv;
@@ -1146,9 +1600,7 @@
                          if (bulkInfo.affordable && bulkInfo.levels > 0) {
                              costToShow = bulkInfo.totalCost;
                              if (bulkInfo.levels > 1) levelText = ` (x${bulkInfo.levels})`;
-                         } else {
-                             costToShow = bulkInfo.nextLevelCost;
-                         }
+                         } else { costToShow = bulkInfo.nextLevelCost; }
                      }
                  } else {
                      const cost = calculateCost(upgrade.baseCost, currentLevel, upgrade.costFactor);
@@ -1167,8 +1619,9 @@
                  btn.innerHTML = `<div class="upgrade-description">${descriptionText}</div>`;
                  if (!isCurrentlyMaxed && currencyType === 'hit') {
                      btn.innerHTML += `<div class="upgrade-cost ${currencyClass}">Cost: ${formatScore(costToShow)}${levelText}</div>`;
-                 } else if (isCurrentlyMaxed && currencyType === 'hit') {
-                     // Optional: Indicate Maxed
+                 }
+                 if(!isCurrentlyMaxed && currencyType === 'meta' && !descriptionText.includes('upgrade-cost meta')) {
+                     btn.innerHTML += `<div class="upgrade-cost ${currencyClass}">Cost: ${formatScore(costToShow)}</div>`;
                  }
 
                  btn.disabled = isCurrentlyMaxed || !bulkInfo.affordable;
@@ -1176,7 +1629,6 @@
                  container.appendChild(btn);
              });
         }
-
 
         function updateUpgradeButtonsInSection(upgrades, container, currencyType, tvIndex = -1) {
             if (!container) return;
@@ -1191,16 +1643,14 @@
                     const currentLevel = upgrade.getLevel(stateForLevel);
                     let bulkInfo = { levels: 1, totalCost: 0, affordable: false, isMaxLevel: false, nextLevelCost: 0 };
                     let descriptionText = ''; let currencyClass = currencyType;
-                    let costToShow = 0;
-                    let levelText = '';
-                    let isCurrentlyMaxed = false;
+                    let costToShow = 0; let levelText = ''; let isCurrentlyMaxed = false;
 
                     let maxLevelCheck;
                     if (upgrade.id === 'multiBox' && tvState) maxLevelCheck = globalState.maxBoxesPerTv;
                     else if (typeof upgrade.getMaxLevel === 'function') maxLevelCheck = upgrade.getMaxLevel(stateForLevel);
                     else maxLevelCheck = upgrade.maxLevel;
 
-                    isCurrentlyMaxed = (maxLevelCheck !== undefined && currentLevel >= maxLevelCheck);
+                     isCurrentlyMaxed = (maxLevelCheck !== undefined && currentLevel >= maxLevelCheck);
                      if (!isCurrentlyMaxed && typeof upgrade.canPurchase === 'function') {
                         isCurrentlyMaxed = !upgrade.canPurchase(stateForLevel, currentLevel);
                      }
@@ -1218,9 +1668,7 @@
                             if (bulkInfo.affordable && bulkInfo.levels > 0) {
                                 costToShow = bulkInfo.totalCost;
                                 if (bulkInfo.levels > 1) levelText = ` (x${bulkInfo.levels})`;
-                            } else {
-                                costToShow = bulkInfo.nextLevelCost;
-                            }
+                            } else { costToShow = bulkInfo.nextLevelCost; }
                             if (!costDiv) {
                                 costDiv = document.createElement('div');
                                 costDiv.classList.add('upgrade-cost', currencyClass);
@@ -1228,27 +1676,31 @@
                             }
                             costDiv.innerHTML = `Cost: ${formatScore(costToShow)}${levelText}`;
                             costDiv.style.display = '';
-                        } else {
-                             if (costDiv) costDiv.style.display = 'none';
-                        }
-
-                    } else {
+                        } else { if (costDiv) costDiv.style.display = 'none'; }
+                    } else { // Meta upgrades
                         const cost = calculateCost(upgrade.baseCost, currentLevel, upgrade.costFactor);
                         costToShow = cost;
                         bulkInfo.affordable = currentScore >= cost && !isCurrentlyMaxed;
                         bulkInfo.isMaxLevel = isCurrentlyMaxed;
                         descriptionText = upgrade.getDescription(globalState, currentLevel, cost, isCurrentlyMaxed);
                         if (descDiv) descDiv.innerHTML = descriptionText;
-                        if (costDiv && currencyType === 'meta') {
-                            costDiv.style.display = 'none';
-                        }
-                    }
 
+                         if(!isCurrentlyMaxed && !descriptionText.includes('upgrade-cost meta')) {
+                             if (!costDiv) {
+                                 costDiv = document.createElement('div');
+                                 costDiv.classList.add('upgrade-cost', currencyClass);
+                                 btn.appendChild(costDiv);
+                             }
+                             costDiv.innerHTML = `Cost: ${formatScore(costToShow)}`;
+                             costDiv.style.display = '';
+                         } else if (isCurrentlyMaxed && costDiv) {
+                             costDiv.style.display = 'none';
+                         }
+                    }
                     btn.disabled = isCurrentlyMaxed || !bulkInfo.affordable;
                 }
             });
         }
-
 
         function buyUpgrade(id, currencyType, tvIndex = -1) {
             const upgrades = currencyType === 'hit' ? tvUpgrades : metaUpgrades;
@@ -1256,41 +1708,29 @@
 
             const isTvUpgrade = currencyType === 'hit' && tvIndex !== -1;
             const amountToTry = isTvUpgrade ? selectedBuyAmount : 1;
-
             const stateToModify = isTvUpgrade ? globalState.tvStates[tvIndex] : globalState;
             if (!stateToModify) { console.error("Invalid state for upgrade:", id, currencyType, tvIndex); return; }
 
             const scoreRef = currencyType === 'hit' ? 'totalSessionHits' : 'systemStaticCharges';
             const currentScore = globalState[scoreRef];
-
             let currentLevel = upgrade.getLevel(stateToModify);
-            let totalCost = 0;
-            let levelsToBuy = 0;
-
+            let totalCost = 0; let levelsToBuy = 0;
             const maxIterations = (amountToTry === Infinity) ? MAX_BULK_BUY_CHECK : amountToTry;
             const flooredScore = Math.floor(currentScore);
 
             for (let i = 0; i < maxIterations; i++) {
                 const levelToCheck = currentLevel + levelsToBuy;
-
-                let maxLevel;
+                 let maxLevel;
                  if (upgrade.id === 'multiBox' && isTvUpgrade) maxLevel = globalState.maxBoxesPerTv;
                  else if (typeof upgrade.getMaxLevel === 'function') maxLevel = upgrade.getMaxLevel(stateToModify);
                  else maxLevel = upgrade.maxLevel;
                 if (maxLevel !== undefined && levelToCheck >= maxLevel) break;
-
                 if (!(typeof upgrade.canPurchase === 'function' ? upgrade.canPurchase(stateToModify, levelToCheck) : true)) break;
-
                 const costForThisLevel = calculateCost(upgrade.baseCost, levelToCheck, upgrade.costFactor, tvIndex);
-
                 if (flooredScore >= totalCost + costForThisLevel) {
-                    totalCost += costForThisLevel;
-                    levelsToBuy++;
-                } else {
-                    break;
-                }
+                    totalCost += costForThisLevel; levelsToBuy++;
+                } else { break; }
             }
-
 
             if (levelsToBuy > 0) {
                 globalState[scoreRef] -= totalCost;
@@ -1299,29 +1739,30 @@
                     if (upgrade.id === 'multiBox') {
                         upgrade.applyEffect(stateToModify, tvIndex, levelsToBuy);
                     } else {
-                         for(let k=0; k<levelsToBuy; k++) {
-                             upgrade.applyEffect(stateToModify, tvIndex);
-                         }
+                         for(let k=0; k<levelsToBuy; k++) { upgrade.applyEffect(stateToModify, tvIndex); }
                     }
-                    recalculateDerivedTvState(stateToModify);
+                    recalculateDerivedTvState(stateToModify); // Apply TV upgrade effects
                     updateModalTvStats(stateToModify);
                     updateSelectedTvUpgradeButtons();
                     updateTvGlow(tvIndex);
-                } else {
-                     upgrade.applyEffect(stateToModify, tvIndex);
-                     if (upgrade.id === 'metaTvSynergyBonus' || upgrade.id === 'metaAddTv') recalculateGlobalSynergy();
-                     if (upgrade.id === 'metaBaseMaxBoxes' || upgrade.id === 'metaBaseSpeed') updateAllTvsPostMeta();
-                     if (upgrade.id === 'metaAddTv') checkMetaButtonVisibility();
-                     if (upgrade.id === 'metaBaseMaxBoxes') {
-                         updateSelectedTvUpgradeButtons();
+                } else { // Meta Upgrade
+                     for(let k=0; k<levelsToBuy; k++) { upgrade.applyEffect(stateToModify, tvIndex); }
+                     // Re-apply relevant global effects after meta upgrade
+                     if (upgrade.id === 'metaTvSynergyBonus' || upgrade.id === 'metaAddTv') {
+                         recalculateGlobalSynergy(); // Recalculate synergy if TV count or synergy level changes
                      }
+                     if (upgrade.id === 'metaBaseMaxBoxes' || upgrade.id === 'metaBaseSpeed') {
+                         updateAllTvsPostMeta(); // Apply speed/max box changes to all TVs
+                     }
+                     if (upgrade.id === 'metaAddTv') checkMetaButtonVisibility(); // Show/hide meta button if needed
+                     if (upgrade.id === 'metaBaseMaxBoxes') updateSelectedTvUpgradeButtons(); // Update TV modal if open
+
                      modalTvStats.textContent = `Static Charges: ${formatScore(globalState.systemStaticCharges)}`;
-                     hitsThresholdCache = {}; // Clear cache after meta upgrade purchase
+                     hitsThresholdCache = {};
                      updateMetaUpgradeButtonsIfVisible();
                      updateRebootPreviewIfVisible();
                      updateAllTvGlows();
                 }
-
                 updateTotalHitsDisplay();
                 saveGame();
             } else {
@@ -1337,146 +1778,87 @@
         // --- Reboot Logic ---
         function canCurrentlyReboot() { return globalState.systemStaticCharges > 0 || globalState.hasRebootedOnce || calculateStaticChargeGain(globalState.lifetimeSessionHits) > 0; }
         function checkMetaButtonVisibility() { metaMenuButton.classList.toggle('show', canCurrentlyReboot()); }
-
-        // Finds the minimum hits needed to reach a targetGain level
         function findHitsThreshold(targetGain) {
             if (targetGain <= 0) return 0;
-            // Check cache first
-            if (hitsThresholdCache[targetGain] !== undefined) {
-                return hitsThresholdCache[targetGain];
-            }
+            if (hitsThresholdCache[targetGain] !== undefined) return hitsThresholdCache[targetGain];
 
-            let lowerBound = 0;
-            let upperBound = REBOOT_MIN_HITS_FOR_FIRST_CHARGE; // Start with a reasonable upper guess
-
-            // Quickly find an upper bound
+            let lowerBound = 0; let upperBound = hitsThresholdCache[targetGain-1] ?? REBOOT_MIN_HITS_FOR_FIRST_CHARGE;
             let iterations = 0;
             while (calculateStaticChargeGain(upperBound) < targetGain && iterations < 50 && upperBound < FIND_THRESHOLD_MAX_HITS) {
-                lowerBound = upperBound;
-                upperBound *= 5; // Increase guess exponentially
-                iterations++;
+                lowerBound = upperBound; upperBound = Math.max(upperBound + 1, Math.floor(upperBound * 5)); iterations++;
             }
-            upperBound = Math.min(upperBound, FIND_THRESHOLD_MAX_HITS);
+             upperBound = Math.min(upperBound, FIND_THRESHOLD_MAX_HITS);
+             if (calculateStaticChargeGain(upperBound) < targetGain || upperBound >= FIND_THRESHOLD_MAX_HITS) { hitsThresholdCache[targetGain] = Infinity; return Infinity; }
 
-            // If upper bound is still too low (or max hits reached), return max/infinity
-             if (calculateStaticChargeGain(upperBound) < targetGain || upperBound >= FIND_THRESHOLD_MAX_HITS) {
-                 hitsThresholdCache[targetGain] = Infinity; // Cache infinity if target is unreachable
-                 return Infinity;
-             }
-
-
-            // Binary search between lowerBound and upperBound
-            let bestGuess = upperBound;
-            iterations = 0; // Reset iteration count for binary search
+            let bestGuess = upperBound; iterations = 0;
             while (lowerBound <= upperBound && iterations < FIND_THRESHOLD_MAX_ITERATIONS) {
-                const mid = Math.floor(lowerBound + (upperBound - lowerBound) / 2);
-                if (mid <= 0) break; // Avoid infinite loop if mid becomes 0
-
+                const mid = lowerBound + Math.floor((upperBound - lowerBound) / 2);
+                if (mid <= lowerBound && mid < upperBound) break;
                 const gainAtMid = calculateStaticChargeGain(mid);
-
-                if (gainAtMid >= targetGain) {
-                    bestGuess = mid; // Found a potential threshold, try lower
-                    upperBound = mid - 1;
-                } else {
-                    lowerBound = mid + 1; // Need more hits
-                }
+                if (gainAtMid >= targetGain) { bestGuess = mid; upperBound = mid - 1; }
+                else { lowerBound = mid + 1; }
                 iterations++;
             }
-
-             if (iterations >= FIND_THRESHOLD_MAX_ITERATIONS) {
-                 console.warn(`findHitsThreshold exceeded max iterations for targetGain ${targetGain}. Returning best guess: ${bestGuess}`);
-             }
-
-            hitsThresholdCache[targetGain] = bestGuess; // Cache the result
-            return bestGuess;
+             if (iterations >= FIND_THRESHOLD_MAX_ITERATIONS) console.warn(`findHitsThreshold exceeded max iterations for targetGain ${targetGain}. Returning best guess: ${bestGuess}`);
+            hitsThresholdCache[targetGain] = bestGuess; return bestGuess;
         }
-
-
         function updateRebootPreviewIfVisible() {
             if (selectedTvIndex !== -1 || !upgradeModal.classList.contains('show')) return;
-            const rebootSection = modalRebootContainer.querySelector('#reboot-section');
-            if (!rebootSection) return;
-
+            const rebootSection = modalRebootContainer.querySelector('#reboot-section'); if (!rebootSection) return;
             const rebootGainPreview = rebootSection.querySelector('#reboot-gain-preview');
             const rebootButton = rebootSection.querySelector('#reboot-button');
             const progressContainer = rebootSection.querySelector('#reboot-progress-container');
             const progressBar = rebootSection.querySelector('#reboot-progress-bar');
             const progressText = rebootSection.querySelector('#reboot-progress-text');
-
             if (!rebootGainPreview || !rebootButton || !progressContainer || !progressBar || !progressText) return;
 
             const currentLifetimeHits = globalState.lifetimeSessionHits;
             const totalPotentialGain = calculateStaticChargeGain(currentLifetimeHits);
-
             rebootGainPreview.textContent = `Gain ~${formatScore(totalPotentialGain)} Static Charges (from ${formatScore(currentLifetimeHits)} total Hits)`;
             rebootButton.disabled = totalPotentialGain <= 0;
 
-            // --- Progress Bar Update ---
-            let hitsForCurrentGain = 0;
-            let hitsForNextGain = Infinity;
-            let hitsRemaining = 0;
-            let progressPercent = 0;
-            let displayText = "";
+            let hitsForCurrentGain = 0; let hitsForNextGain = Infinity; let hitsRemaining = 0; let progressPercent = 0; let displayText = "";
 
             if (totalPotentialGain === 0) {
-                // Progress towards the *first* charge
                 hitsForNextGain = findHitsThreshold(1);
                 if (hitsForNextGain === Infinity || hitsForNextGain <= REBOOT_MIN_HITS_FOR_FIRST_CHARGE) {
-                    hitsRemaining = REBOOT_MIN_HITS_FOR_FIRST_CHARGE - currentLifetimeHits;
-                    progressPercent = Math.min(100, Math.max(0, (currentLifetimeHits / REBOOT_MIN_HITS_FOR_FIRST_CHARGE) * 100));
+                     hitsRemaining = REBOOT_MIN_HITS_FOR_FIRST_CHARGE - currentLifetimeHits;
+                     progressPercent = Math.min(100, Math.max(0, (currentLifetimeHits / REBOOT_MIN_HITS_FOR_FIRST_CHARGE) * 100));
                      displayText = `${formatScore(Math.max(0, hitsRemaining))} Hits for first charge`;
                 } else {
-                    hitsRemaining = hitsForNextGain - currentLifetimeHits;
-                    progressPercent = Math.min(100, Math.max(0, (currentLifetimeHits / hitsForNextGain) * 100));
+                     hitsRemaining = hitsForNextGain - currentLifetimeHits;
+                     progressPercent = Math.min(100, Math.max(0, (currentLifetimeHits / hitsForNextGain) * 100));
                      displayText = `${formatScore(Math.max(0, hitsRemaining))} Hits for first charge`;
                 }
-                 progressBar.style.width = `${progressPercent}%`;
-                 progressText.textContent = displayText;
-                 progressContainer.style.display = 'block'; // Ensure it's visible
-
+                 progressBar.style.width = `${progressPercent}%`; progressText.textContent = displayText; progressContainer.style.display = 'block';
             } else {
-                // Progress towards the *next* charge (gain + 1)
                 const targetGain = totalPotentialGain + 1;
-                hitsForCurrentGain = findHitsThreshold(totalPotentialGain); // Find threshold for current gain level
-                hitsForNextGain = findHitsThreshold(targetGain);     // Find threshold for next gain level
-
+                hitsForCurrentGain = findHitsThreshold(totalPotentialGain); hitsForNextGain = findHitsThreshold(targetGain);
                 if (hitsForNextGain === Infinity || hitsForNextGain <= hitsForCurrentGain) {
-                    // Max gain reached or error in calculation
-                    progressPercent = 100;
-                    displayText = `Threshold Reached`;
-                     progressBar.style.width = '100%';
-                     progressText.textContent = displayText;
-                     progressContainer.style.display = 'block';
+                    progressPercent = 100; displayText = `Next Threshold Far Away`;
+                     progressBar.style.width = '100%'; progressText.textContent = displayText; progressContainer.style.display = 'block';
                 } else {
                     const hitsInRange = hitsForNextGain - hitsForCurrentGain;
                     const currentProgressInHits = currentLifetimeHits - hitsForCurrentGain;
                     hitsRemaining = hitsForNextGain - currentLifetimeHits;
-
                     progressPercent = Math.min(100, Math.max(0, (currentProgressInHits / hitsInRange) * 100));
                     displayText = `${formatScore(Math.max(0, hitsRemaining))} Hits for next charge`;
-
-                     progressBar.style.width = `${progressPercent}%`;
-                     progressText.textContent = displayText;
-                     progressContainer.style.display = 'block';
+                     progressBar.style.width = `${progressPercent}%`; progressText.textContent = displayText; progressContainer.style.display = 'block';
                 }
             }
         }
-
-
         function calculateStaticChargeGain(totalLifetimeHits) {
-            if (totalLifetimeHits < REBOOT_MIN_HITS_FOR_FIRST_CHARGE) return 0; // Use constant
+            if (totalLifetimeHits < REBOOT_MIN_HITS_FOR_FIRST_CHARGE) return 0;
             const metaMultiplier = deriveMetaStaticChargeMult(globalState.metaLevels.staticChargeGain);
             const baseGain = Math.pow(totalLifetimeHits / REBOOT_MIN_HITS_FOR_FIRST_CHARGE, 0.45) * 1.5;
             const logBonus = Math.log10(totalLifetimeHits / REBOOT_MIN_HITS_FOR_FIRST_CHARGE + 1) * 0.5;
             const gain = Math.floor((baseGain + logBonus) * metaMultiplier);
             return Math.max(0, gain);
         }
-
         function executeReboot() {
              const staticChargesGained = calculateStaticChargeGain(globalState.lifetimeSessionHits);
              if (staticChargesGained <= 0 && globalState.lifetimeSessionHits < REBOOT_MIN_HITS_FOR_FIRST_CHARGE) {
-                 showNotification("Not enough lifetime Hits for Static Charges");
-                 return;
+                 showNotification("Not enough lifetime Hits for Static Charges"); return;
              }
               if (!confirm(`Reboot: Gain ${formatScore(staticChargesGained)} Static Charges?\n\nResets session Hits & TV Upgrades.\nKeeps Static Charges, Meta Upgrades & Unlocked TVs.`)) {
                  return;
@@ -1484,31 +1866,158 @@
 
              closeUpgradeModal();
              showNotification(`Rebooted! +${formatScore(staticChargesGained)} Static Charges`);
+
              globalState.systemStaticCharges += staticChargesGained;
              globalState.hasRebootedOnce = true;
              globalState.totalSessionHits = 0;
              globalState.lifetimeSessionHits = 0;
-             boxCollisionTimers = {};
-             hitsThresholdCache = {}; // Clear cache on reboot
-             devSpeedFactor = 1;
+             globalState.screenBurnCooldownEndTimestamp = 0;
+             globalState.isCornerBetActive = false;
+             globalState.cornerBetAmount = 0;
+             globalState.cornerBetActivationTimestamp = null;
+
+             boxCollisionTimers = {}; hitsThresholdCache = {}; devSpeedFactor = 1;
              if(document.getElementById('dev-speed-input')) document.getElementById('dev-speed-input').value = 1;
 
              globalState.tvStates.forEach((tvState, index) => {
                  Object.keys(tvState.upgrades).forEach(key => { tvState.upgrades[key] = 0; });
                  clearTvScreenBoxes(index);
-                 tvState.boxes = [];
-                 tvState.nextBoxId = 0;
-                 tvState.lastCornerHitTimestamp = null;
-                 recalculateDerivedTvState(tvState);
-                 applyMetaUpgradesToTv(tvState);
-                 addBoxToTv(index);
-                 resizeTvScreen(tvState);
-                 checkAndAdjustBoxPositions(index);
+                 tvState.boxes = []; tvState.nextBoxId = 0; tvState.lastCornerHitTimestamp = null;
+                 recalculateDerivedTvState(tvState); // Recalculates with current meta levels
+                 // No need to call applyMetaUpgradesToTv here, it's handled by recalculate
+                 addBoxToTv(index); resizeTvScreen(tvState); checkAndAdjustBoxPositions(index);
             });
-             recalculateGlobalSynergy();
+
+             recalculateGlobalSynergy(); // Recalculate based on potentially changed TV count (though usually static on reboot)
+             updateTotalHitsDisplay(); updateAllTvGlows();
+             checkMetaButtonVisibility(); updateScreenBurnButtonState(Date.now());
+             updateCornerBetButtonVisibility(); updateCornerBetButtonState();
+             saveGame();
+         }
+
+         // --- Screen Burn Ability ---
+        function updateScreenBurnButtonVisibility() {
+            const isVisible = globalState && globalState.metaLevels.screenBurnLevel > 0;
+            screenBurnButton.style.display = isVisible ? 'flex' : 'none';
+        }
+        function updateScreenBurnButtonState(now) {
+            if (!globalState || globalState.metaLevels.screenBurnLevel <= 0) {
+                 screenBurnButton.style.display = 'none'; return;
+            }
+             updateScreenBurnButtonVisibility();
+            const cooldownEndTime = globalState.screenBurnCooldownEndTimestamp || 0;
+            if (now < cooldownEndTime) {
+                screenBurnButton.disabled = true;
+                const remainingSeconds = Math.ceil((cooldownEndTime - now) / 1000);
+                const minutes = Math.floor(remainingSeconds / 60); const seconds = remainingSeconds % 60;
+                if(screenBurnCooldownText) screenBurnCooldownText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            } else {
+                screenBurnButton.disabled = false;
+                if(screenBurnCooldownText) screenBurnCooldownText.textContent = '';
+            }
+        }
+        function activateScreenBurn() {
+            const now = Date.now();
+            if (!globalState || globalState.metaLevels.screenBurnLevel <= 0) return;
+            if (now < (globalState.screenBurnCooldownEndTimestamp || 0)) return;
+            if (globalState.isCornerBetActive) {
+                showNotification("Cannot activate Screen Burn during Corner Bet!");
+                return;
+            }
+
+            const numLogosToBurn = globalState.metaLevels.screenBurnLevel;
+            if (numLogosToBurn <= 0) return;
+
+            const availableLogos = [];
+            globalState.tvStates.forEach(tv => {
+                tv.boxes.forEach(box => {
+                    if (box.element && (box.burnEndTime === null || now >= box.burnEndTime)) {
+                        availableLogos.push({ box, tvIndex: tv.index });
+                    }
+                });
+            });
+            if (availableLogos.length === 0) { showNotification("No logos available to burn!"); return; }
+
+            shuffleArray(availableLogos);
+            const logosToAffect = availableLogos.slice(0, numLogosToBurn);
+            logosToAffect.forEach(item => {
+                const box = item.box; box.burnEndTime = now + SCREEN_BURN_DURATION_MS;
+                if (box.element) {
+                     box.element.classList.add('screen-burn-effect');
+                     box.element.style.setProperty('--tx', `${box.x}px`); box.element.style.setProperty('--ty', `${box.y}px`);
+                }
+            });
+
+            globalState.screenBurnCooldownEndTimestamp = now + SCREEN_BURN_COOLDOWN_SECONDS * 1000;
+            updateScreenBurnButtonState(now);
+            showNotification(`Screen Burn Activated! ${logosToAffect.length} logo${logosToAffect.length !== 1 ? 's' : ''} affected.`);
+            saveGame();
+        }
+
+        // --- Corner Bet Ability ---
+        function updateCornerBetButtonVisibility() {
+             const isVisible = globalState && globalState.metaLevels.cornerBetLevel > 0;
+             cornerBetButton.style.display = isVisible ? 'flex' : 'none';
+        }
+        function updateCornerBetButtonState() {
+             if (!globalState || globalState.metaLevels.cornerBetLevel <= 0) {
+                 cornerBetButton.style.display = 'none'; return;
+             }
+             updateCornerBetButtonVisibility();
+             const isDisabled = globalState.isCornerBetActive || globalState.totalSessionHits <= 0;
+             cornerBetButton.disabled = isDisabled;
+             cornerBetButton.classList.toggle('bet-active', globalState.isCornerBetActive);
+         }
+        function activateCornerBet() {
+             if (!globalState || globalState.metaLevels.cornerBetLevel <= 0) { showNotification("Corner Bet upgrade required!"); return; }
+             if (globalState.isCornerBetActive) { showNotification("Corner Bet already active!"); return; }
+             if (globalState.totalSessionHits <= 0) { showNotification("Need Hits to place a bet!"); return; }
+             const now = Date.now();
+             if (now < (globalState.screenBurnCooldownEndTimestamp || 0)) { showNotification("Cannot activate Corner Bet during Screen Burn cooldown!"); return; }
+             let anyBurning = false;
+             globalState.tvStates.forEach(tv => tv.boxes.forEach(b => { if(b.burnEndTime && now < b.burnEndTime) anyBurning = true; }));
+             if (anyBurning) { showNotification("Cannot activate Corner Bet while logos are burning!"); return; }
+
+             globalState.cornerBetAmount = globalState.totalSessionHits;
+             globalState.isCornerBetActive = true;
+             globalState.cornerBetActivationTimestamp = Date.now();
+             updateCornerBetButtonState();
+             showNotification(`Bet Placed: ${formatScore(globalState.cornerBetAmount)} Hits! Next hit must be a corner within ${CORNER_BET_TIMEOUT_MS/1000}s.`);
+             saveGame();
+         }
+        function resolveCornerBet(isWin) {
+             if (!globalState || !globalState.isCornerBetActive) return;
+
+             const betAmount = globalState.cornerBetAmount;
+             const multiplier = deriveCornerBetMultiplier(globalState.metaLevels.cornerBetLevel);
+             let message = ""; let finalAmount = 0;
+
+             if (isWin) {
+                 const winnings = Math.floor(betAmount * multiplier);
+                 const netGain = winnings - betAmount;
+                 globalState.totalSessionHits = winnings;
+                 globalState.lifetimeSessionHits += Math.max(0, netGain);
+                 message = "CORNER BET WIN!"; finalAmount = winnings;
+                 showBetResultOverlay(message, finalAmount, true);
+             } else {
+                 globalState.totalSessionHits = 0;
+                 message = "CORNER BET LOST!"; finalAmount = betAmount;
+                 showBetResultOverlay(message, finalAmount, false);
+             }
+
+             globalState.isCornerBetActive = false;
+             globalState.cornerBetAmount = 0;
+             globalState.cornerBetActivationTimestamp = null;
+
+             updateCornerBetButtonState();
              updateTotalHitsDisplay();
              updateAllTvGlows();
-             checkMetaButtonVisibility();
+             if (upgradeModal.classList.contains('show')) {
+                 hitsThresholdCache = {};
+                 updateSelectedTvUpgradeButtons();
+                 updateMetaUpgradeButtonsIfVisible();
+                 updateRebootPreviewIfVisible();
+             }
              saveGame();
          }
 
@@ -1516,26 +2025,22 @@
         function saveGame() {
             try {
                 const now = Date.now();
-                 if (document.hidden && (now - lastSaveTime < 4000)) {
-                     return;
-                 }
-                 if (!globalState) {
-                     console.warn("Attempted to save with null globalState.");
-                     return;
-                 }
+                 if (document.hidden && (now - lastSaveTime < 4000)) return;
+                 if (!globalState) { console.warn("Attempted to save with null globalState."); return; }
 
                 globalState.lastSaveTimestamp = now;
                 lastSaveTime = now;
+                globalState.version = SAVE_VERSION;
 
                 const amountToSave = (selectedBuyAmount === Infinity) ? 'max' : selectedBuyAmount;
                 const stateToSave = JSON.parse(JSON.stringify({...globalState, selectedBuyAmount: amountToSave}, (key, value) => {
-                    if (key === 'elements' || key === 'element' || key === 'resizeRetryTimeout' || key === 'adjustRetryTimeout') return undefined;
-                     if (['x', 'y', 'vx', 'vy'].includes(key)) {
-                         return (typeof value === 'number' && !isNaN(value)) ? value : 0;
-                     }
-                     if (key === 'lastCornerHitTimestamp') {
-                         return (typeof value === 'number' && value > 0) ? value : null;
-                     }
+                    if (key === 'elements' || key === 'element' || key === 'resizeRetryTimeout' || key === 'adjustRetryTimeout' || key === 'burnEndTime') return undefined;
+                     if (['x', 'y', 'vx', 'vy'].includes(key)) { return (typeof value === 'number' && !isNaN(value)) ? value : 0; }
+                     if (key === 'lastCornerHitTimestamp') { return (typeof value === 'number' && value > 0) ? value : null; }
+                     if (key === 'screenBurnCooldownEndTimestamp') { return (typeof value === 'number' && value > 0) ? value : 0; }
+                     if (key === 'isCornerBetActive') { return typeof value === 'boolean' ? value : false; }
+                     if (key === 'cornerBetAmount') { return (typeof value === 'number' && value >= 0) ? value : 0; }
+                     if (key === 'cornerBetActivationTimestamp') { return (typeof value === 'number' && value > 0) ? value : null; }
                     return value;
                 }));
                 localStorage.setItem(SAVE_KEY, JSON.stringify(stateToSave));
@@ -1545,6 +2050,7 @@
                 showNotification("Save Error!");
             }
         }
+
         function loadGame() {
             const savedData = localStorage.getItem(SAVE_KEY);
             let needsInitialization = true;
@@ -1554,132 +2060,126 @@
             const speedInput = document.getElementById('dev-speed-input');
             if (speedInput) speedInput.value = devSpeedFactor;
 
-
             if (savedData) {
                 try {
                     const loadedState = JSON.parse(savedData);
-                    let hasNewCornerUpgrade = false;
-                    if (Array.isArray(loadedState.tvStates) && loadedState.tvStates.length > 0 && loadedState.tvStates[0].upgrades) {
-                       hasNewCornerUpgrade = loadedState.tvStates[0].upgrades.hasOwnProperty('cornerMultiplier');
-                    }
 
-                    if (typeof loadedState.systemStaticCharges === 'number' &&
-                        Array.isArray(loadedState.tvStates) &&
-                        loadedState.metaLevels &&
-                        typeof loadedState.metaLevels.cornersSuckBonus === 'number' && // Check for a known required meta level
-                        hasNewCornerUpgrade) {
-
-                        globalState = createDefaultGlobalState();
-                        globalState = deepMerge(globalState, loadedState);
-
-                        globalState.totalSessionHits = Number(globalState.totalSessionHits) || 0;
-                        globalState.lifetimeSessionHits = Number(globalState.lifetimeSessionHits) || globalState.totalSessionHits;
-                        globalState.systemStaticCharges = Number(globalState.systemStaticCharges) || 0;
-                        globalState.hasRebootedOnce = Boolean(globalState.hasRebootedOnce);
-                        globalState.lastSaveTimestamp = Number(globalState.lastSaveTimestamp) || null;
-
-                        Object.keys(globalState.metaLevels).forEach(key => {
-                            if (globalState.metaLevels[key] === undefined) {
-                                console.warn(`Meta level ${key} missing from save, initializing to 0.`);
-                                globalState.metaLevels[key] = 0;
-                            } else {
-                                globalState.metaLevels[key] = Number(globalState.metaLevels[key]) || 0;
-                            }
-                         });
-
-                        globalState.nextTvId = Math.max(globalState.nextTvId || 0, (globalState.tvStates.reduce((max, tv) => Math.max(max, tv.id ?? -1), -1) + 1));
-                        if (globalState.metaLevels.hasOwnProperty('logoSize')) { delete globalState.metaLevels.logoSize; }
-
-                        selectedBuyAmount = globalState.selectedBuyAmount || 1;
-                        if (selectedBuyAmount === 'max') selectedBuyAmount = Infinity;
-                        else selectedBuyAmount = parseInt(selectedBuyAmount) || 1;
-
-                        // --- Calculate Offline Progress ---
-                        if (globalState.lastSaveTimestamp && typeof globalState.lastSaveTimestamp === 'number') {
-                            const currentTime = Date.now();
-                            let offlineTimeMs = currentTime - globalState.lastSaveTimestamp;
-
-                            if (offlineTimeMs < 0) {
-                                console.warn("Negative offline time detected, ignoring offline progress calculation.");
-                                offlineTimeMs = 0;
-                            }
-
-                            offlineTimeMs = Math.min(offlineTimeMs, MAX_OFFLINE_TIME_MS);
-
-                            if (offlineTimeMs >= MIN_OFFLINE_TIME_MS) {
-                                updateAllTvsPostMeta();
-                                recalculateGlobalSynergy();
-
-                                console.log(`Calculating offline gains for ${Math.round(offlineTimeMs / 1000)} seconds...`);
-                                offlineGains = calculateIdleGains(offlineTimeMs);
-
-                                if (offlineGains > 0) {
-                                    globalState.totalSessionHits += offlineGains;
-                                    globalState.lifetimeSessionHits += offlineGains;
-                                    console.log(`Offline Gains: ${formatScore(offlineGains)} Hits`);
-                                }
-                            } else {
-                                 console.log("Offline time too short for calculation:", offlineTimeMs, "ms");
-                            }
-                        } else {
-                             console.log("No valid lastSaveTimestamp found for offline calculation.");
-                        }
-
-                        // Validate TV states
-                        globalState.tvStates.forEach((tv, index) => {
-                            tv.index = index;
-                            tv.boxes = Array.isArray(tv.boxes) ? tv.boxes : [];
-                            tv.boxes.forEach(box => {
-                                box.x = (typeof box.x === 'number' && !isNaN(box.x)) ? box.x : 50;
-                                box.y = (typeof box.y === 'number' && !isNaN(box.y)) ? box.y : 50;
-                                box.vx = (typeof box.vx === 'number' && !isNaN(box.vx)) ? box.vx : (Math.random()-0.5)*BASE_SPEED_CONSTANT*0.5;
-                                box.vy = (typeof box.vy === 'number' && !isNaN(box.vy)) ? box.vy : (Math.random()-0.5)*BASE_SPEED_CONSTANT*0.5;
-                                box.element = null;
-                            });
-                            tv.nextBoxId = Math.max(tv.nextBoxId || 0, (tv.boxes.reduce((max, box) => Math.max(max, box.id ?? -1), -1) + 1));
-                            tv.lastCornerHitTimestamp = (typeof tv.lastCornerHitTimestamp === 'number' && tv.lastCornerHitTimestamp > 0) ? tv.lastCornerHitTimestamp : null;
-                            Object.keys(createDefaultTvState(0,0).upgrades).forEach(upgradeKey => {
-                                if (!tv.upgrades || tv.upgrades[upgradeKey] === undefined) {
-                                    console.warn(`TV ${tv.id} missing upgrade ${upgradeKey} from save, initializing to 0.`);
-                                    if (!tv.upgrades) tv.upgrades = {};
-                                    tv.upgrades[upgradeKey] = 0;
-                                }
-                            });
-                        });
-                        nextTvId = globalState.nextTvId;
-                        boxCollisionTimers = {};
-                        hitsThresholdCache = {}; // Clear cache on load
-
-                        updateAllTvsPostMeta();
-                        recalculateGlobalSynergy();
-
-                        showNotification(`Loaded Game State${offlineGains > 0 ? ` (+${formatScore(offlineGains)} Offline Hits)` : ''}`);
-                        needsInitialization = false;
+                    if (loadedState.version !== SAVE_VERSION) {
+                        console.warn(`Save data version mismatch (Save: ${loadedState.version || 'Unknown'}, Game: ${SAVE_VERSION}). Resetting.`);
+                        localStorage.removeItem(SAVE_KEY); needsInitialization = true;
                     } else {
-                        console.warn("Invalid save data structure found or missing required keys, resetting.", loadedState);
-                        localStorage.removeItem(SAVE_KEY);
+                        const isValidStructure = loadedState && typeof loadedState.systemStaticCharges === 'number' && Array.isArray(loadedState.tvStates) &&
+                                                loadedState.metaLevels && loadedState.metaLevels.hasOwnProperty('screenBurnLevel') &&
+                                                loadedState.metaLevels.hasOwnProperty('cornerBetLevel') &&
+                                                loadedState.hasOwnProperty('isCornerBetActive') &&
+                                                loadedState.hasOwnProperty('cornerBetAmount') &&
+                                                loadedState.hasOwnProperty('cornerBetActivationTimestamp') &&
+                                                loadedState.hasOwnProperty('screenBurnCooldownEndTimestamp');
+
+                        if (isValidStructure) {
+                            globalState = createDefaultGlobalState();
+                            globalState = deepMerge(globalState, loadedState);
+
+                            globalState.totalSessionHits = Number(globalState.totalSessionHits) || 0;
+                            globalState.lifetimeSessionHits = Number(globalState.lifetimeSessionHits) || globalState.totalSessionHits;
+                            globalState.systemStaticCharges = Number(globalState.systemStaticCharges) || 0;
+                            globalState.hasRebootedOnce = Boolean(globalState.hasRebootedOnce);
+                            globalState.lastSaveTimestamp = Number(globalState.lastSaveTimestamp) || null;
+                            globalState.screenBurnCooldownEndTimestamp = Number(globalState.screenBurnCooldownEndTimestamp) || 0;
+                            globalState.isCornerBetActive = Boolean(globalState.isCornerBetActive);
+                            globalState.cornerBetAmount = Number(globalState.cornerBetAmount) || 0;
+                            globalState.cornerBetActivationTimestamp = Number(globalState.cornerBetActivationTimestamp) || null;
+                            if (globalState.isCornerBetActive) {
+                                console.warn("Loaded game with an active corner bet. Resetting bet state.");
+                                globalState.isCornerBetActive = false;
+                                globalState.cornerBetAmount = 0;
+                                globalState.cornerBetActivationTimestamp = null;
+                            }
+
+                            const defaultMetaKeys = Object.keys(createDefaultGlobalState().metaLevels);
+                            defaultMetaKeys.forEach(key => {
+                                if (!globalState.metaLevels.hasOwnProperty(key)) {
+                                    console.warn(`Meta level ${key} missing from save, initializing to 0.`);
+                                    globalState.metaLevels[key] = 0;
+                                } else { globalState.metaLevels[key] = Number(globalState.metaLevels[key]) || 0; }
+                            });
+
+                            globalState.nextTvId = Math.max(globalState.nextTvId || 0, (globalState.tvStates.reduce((max, tv) => Math.max(max, tv.id ?? -1), -1) + 1));
+                            selectedBuyAmount = globalState.selectedBuyAmount || 1;
+                            if (selectedBuyAmount === 'max') selectedBuyAmount = Infinity;
+                            else selectedBuyAmount = parseInt(selectedBuyAmount) || 1;
+
+                            if (globalState.lastSaveTimestamp && typeof globalState.lastSaveTimestamp === 'number') {
+                                const currentTime = Date.now();
+                                let offlineTimeMs = currentTime - globalState.lastSaveTimestamp;
+                                offlineTimeMs = Math.max(0, offlineTimeMs); offlineTimeMs = Math.min(offlineTimeMs, MAX_OFFLINE_TIME_MS);
+                                if (offlineTimeMs >= MIN_OFFLINE_TIME_MS) {
+                                    updateAllTvsPostMeta(); // Apply meta effects before calculating idle
+                                    recalculateGlobalSynergy(); // Needed for idle calc
+                                    hitsThresholdCache = {};
+                                    console.log(`Calculating offline gains for ${Math.round(offlineTimeMs / 1000)} seconds...`);
+                                    offlineGains = calculateIdleGains(offlineTimeMs);
+                                    if (offlineGains > 0) {
+                                        globalState.totalSessionHits += offlineGains;
+                                        globalState.lifetimeSessionHits += offlineGains;
+                                        console.log(`Offline Gains: ${formatScore(offlineGains)} Hits`);
+                                    }
+                                } else { console.log("Offline time too short for calculation:", offlineTimeMs, "ms"); }
+                            } else { console.log("No valid lastSaveTimestamp found for offline calculation."); }
+
+                            const defaultTvUpgrades = createDefaultTvState(0,0).upgrades;
+                            globalState.tvStates.forEach((tv, index) => {
+                                tv.index = index;
+                                tv.id = Number.isInteger(tv.id) ? tv.id : index;
+                                tv.boxes = Array.isArray(tv.boxes) ? tv.boxes : [];
+                                tv.boxes.forEach(box => {
+                                    box.x = (typeof box.x === 'number' && !isNaN(box.x)) ? box.x : 50; box.y = (typeof box.y === 'number' && !isNaN(box.y)) ? box.y : 50;
+                                    box.vx = (typeof box.vx === 'number' && !isNaN(box.vx)) ? box.vx : (Math.random()-0.5)*BASE_SPEED_CONSTANT*0.5;
+                                    box.vy = (typeof box.vy === 'number' && !isNaN(box.vy)) ? box.vy : (Math.random()-0.5)*BASE_SPEED_CONSTANT*0.5;
+                                    box.element = null; box.burnEndTime = null;
+                                });
+                                tv.nextBoxId = Math.max(tv.nextBoxId || 0, (tv.boxes.reduce((max, box) => Math.max(max, box.id ?? -1), -1) + 1));
+                                tv.lastCornerHitTimestamp = (typeof tv.lastCornerHitTimestamp === 'number' && tv.lastCornerHitTimestamp > 0) ? tv.lastCornerHitTimestamp : null;
+                                Object.keys(defaultTvUpgrades).forEach(upgradeKey => {
+                                    if (!tv.upgrades || !tv.upgrades.hasOwnProperty(upgradeKey)) {
+                                        console.warn(`TV ${tv.id + 1} missing upgrade ${upgradeKey}, initializing to 0.`);
+                                        if (!tv.upgrades) tv.upgrades = {}; tv.upgrades[upgradeKey] = 0;
+                                    } else { tv.upgrades[upgradeKey] = Number(tv.upgrades[upgradeKey]) || 0; }
+                                });
+                                // Recalculate derived state for each loaded TV
+                                recalculateDerivedTvState(tv);
+                            });
+
+                            nextTvId = globalState.nextTvId; boxCollisionTimers = {}; hitsThresholdCache = {};
+                            // updateAllTvsPostMeta(); // Already called before idle calc if needed
+                            recalculateGlobalSynergy(); // Ensure synergy is correct after loading all TVs
+                            showNotification(`Loaded Game State (${SAVE_VERSION})${offlineGains > 0 ? ` (+${formatScore(offlineGains)} Offline Hits)` : ''}`);
+                            needsInitialization = false;
+                        } else {
+                            console.warn(`Save data structure invalid (v${SAVE_VERSION}). Resetting.`);
+                            localStorage.removeItem(SAVE_KEY); needsInitialization = true;
+                        }
                     }
                 } catch (e) {
-                    console.error("Load Error:", e);
-                    showNotification("Load Error! Resetting.");
-                    localStorage.removeItem(SAVE_KEY);
+                    console.error("Load Error:", e); showNotification("Load Error! Resetting.");
+                    localStorage.removeItem(SAVE_KEY); needsInitialization = true;
                 }
             }
 
             if (needsInitialization) {
-                console.log("No valid save found or load error, initializing new game.");
+                console.log("Initializing new game state.");
                 globalState = createDefaultGlobalState();
-                updateAllTvsPostMeta();
-                recalculateGlobalSynergy();
-                addTv();
-                selectedBuyAmount = 1;
-                hitsThresholdCache = {}; // Clear cache on init
+                // Initialize first TV correctly
+                updateAllTvsPostMeta(); // Sets maxBoxesPerTv, recalculates synergy (1.0)
+                addTv(); // Adds the first TV
+                selectedBuyAmount = 1; hitsThresholdCache = {};
             }
 
-             recreateAllDomElements();
+             recreateAllDomElements(); // Rebuild DOM based on loaded/initialized state
              checkMetaButtonVisibility();
-             updateTotalHitsDisplay();
-             updateAllTvGlows();
+             updateScreenBurnButtonVisibility(); updateScreenBurnButtonState(Date.now());
+             updateCornerBetButtonVisibility(); updateCornerBetButtonState();
+             updateTotalHitsDisplay(); updateAllTvGlows();
              requestAnimationFrame(handleGlobalResize);
         }
 
@@ -1689,30 +2189,14 @@
             if (!isObject(target) || !isObject(source)) return source;
             let output = { ...target };
             Object.keys(source).forEach(key => {
-                const targetValue = target[key];
-                const sourceValue = source[key];
-                if (sourceValue === undefined || sourceValue === null) {
-                    if (!(key in output) || key === 'lastCornerHitTimestamp') {
-                        output[key] = sourceValue;
-                    }
-                    return;
-                }
-                if (isObject(sourceValue)) {
-                    if (isObject(targetValue)) {
-                       output[key] = deepMerge(targetValue, sourceValue);
-                    } else {
-                        output[key] = JSON.parse(JSON.stringify(sourceValue));
-                    }
-                } else if (Array.isArray(sourceValue)) {
-                    output[key] = JSON.parse(JSON.stringify(sourceValue));
-                } else {
-                    output[key] = sourceValue;
-                }
-            });
-             Object.keys(target).forEach(key => {
-                if (!(key in source)) {
-                    output[key] = target[key];
-                }
+                const targetValue = target[key]; const sourceValue = source[key];
+                if (sourceValue === undefined) { return; }
+                if (sourceValue === null) { output[key] = null; return; }
+                if (isObject(sourceValue) && isObject(targetValue)) { output[key] = deepMerge(targetValue, sourceValue); }
+                else if (Array.isArray(sourceValue)) {
+                    try { output[key] = JSON.parse(JSON.stringify(sourceValue)); }
+                    catch (e) { console.error(`Error deep cloning array for key ${key}:`, e); output[key] = sourceValue; }
+                } else { output[key] = sourceValue; }
             });
             return output;
         }
@@ -1721,107 +2205,100 @@
         // --- State Initialization ---
         function createDefaultTvState(index, id) {
             const tvState = {
-                index: index, id: id,
-                boxes: [], nextBoxId: 0,
-                upgrades: {
-                    hitValue: 0,
-                    speed: 0,
-                    cornerBonusFlat: 0,
-                    cornerMultiplier: 0,
-                    boxCollisionValue: 0
-                },
-                hitValue: 1,
-                cornerHitBaseBonus: 2000, // Initial base value
-                cornerHitMultiplier: 1.0,
-                boxCollisionValue: 2,
-                baseSpeedFactorMeta: 1.0,
-                lastCornerHitTimestamp: null,
+                index: index, id: id, boxes: [], nextBoxId: 0,
+                upgrades: { hitValue: 0, speed: 0, cornerBonusFlat: 0, cornerMultiplier: 0, boxCollisionValue: 0 },
+                // Derived values will be set by recalculateDerivedTvState
+                hitValue: 1, cornerHitBaseBonus: 0, cornerHitMultiplier: 1.0, boxCollisionValue: 0,
+                baseSpeedFactorMeta: 1.0, lastCornerHitTimestamp: null,
                 screenWidth: 0, screenHeight: 0,
-                dynamicBoxWidth: 0, dynamicBoxHeight: 0,
-                elements: null,
-                resizeRetryTimeout: null, adjustRetryTimeout: null,
+                dynamicBoxWidth: 0, dynamicBoxHeight: 0, elements: null, resizeRetryTimeout: null, adjustRetryTimeout: null,
             };
-            recalculateDerivedTvState(tvState);
+            recalculateDerivedTvState(tvState); // Initialize derived values
             return tvState;
         }
         function createDefaultGlobalState() {
             const now = Date.now();
             return {
-                systemStaticCharges: 0,
-                totalSessionHits: 0,
-                lifetimeSessionHits: 0,
-                tvStates: [],
+                version: SAVE_VERSION, systemStaticCharges: 0, totalSessionHits: 0, lifetimeSessionHits: 0, tvStates: [],
                 metaLevels: {
-                    staticChargeGain: 0,
-                    baseSpeed: 0,
-                    baseMaxBoxes: 0,
-                    tvSynergyBonus: 0,
-                    cornersSuckBonus: 0,
+                    staticChargeGain: 0, baseSpeed: 0, baseMaxBoxes: 0, tvSynergyBonus: 0, cornersSuckBonus: 0,
+                    screenBurnLevel: 0, cornerBetLevel: 0
                 },
-                synergyBonus: 1.0,
-                maxBoxesPerTv: 2,
-                hasRebootedOnce: false,
-                nextTvId: 0,
-                selectedBuyAmount: 1,
-                lastSaveTimestamp: now,
+                synergyBonus: 1.0, maxBoxesPerTv: 2, hasRebootedOnce: false, nextTvId: 0, selectedBuyAmount: 1,
+                lastSaveTimestamp: now, screenBurnCooldownEndTimestamp: 0,
+                isCornerBetActive: false, cornerBetAmount: 0, cornerBetActivationTimestamp: null
             };
         }
 
         // --- Idle Progress Calculation ---
         function calculateIdleGains(idleTimeMs) {
             if (!globalState || !globalState.tvStates || idleTimeMs <= 0) return 0;
-
             let totalIdleHitsPerSec = 0;
+            const nowForIdle = Date.now();
+
+            // Ensure derived state and synergy are up-to-date before calculation
+            // updateAllTvsPostMeta(); // Called in loadGame before this if needed
+            // recalculateGlobalSynergy(); // Called in loadGame before this if needed
+
             globalState.tvStates.forEach(tvState => {
                 if (tvState.boxes.length === 0) return;
+                 // Ensure TV's derived state reflects current meta levels
+                 // recalculateDerivedTvState(tvState); // Should be up-to-date from loadGame/meta purchase
 
                 const tvSpeedFactor = deriveTvSpeedFactor(tvState, tvState.upgrades.speed);
-                const tvHitValue = tvState.hitValue;
-                const numBoxes = tvState.boxes.length;
+                let tvHitValue = tvState.hitValue; const numBoxes = tvState.boxes.length;
+
+                const cornersSuckLevel = globalState.metaLevels.cornersSuckBonus;
+                if (cornersSuckLevel > 0) {
+                    const timeToMaxMs = (CORNERS_SUCK_MAX_MULTIPLIER - 1) * CORNERS_SUCK_TIME_SCALE_FACTOR / (cornersSuckLevel * CORNERS_SUCK_LEVEL_SCALE_FACTOR);
+                    const averageElapsedMs = Math.min(idleTimeMs, timeToMaxMs / 2);
+                    const bonusRatio = Math.min(CORNERS_SUCK_MAX_MULTIPLIER - 1, (averageElapsedMs / CORNERS_SUCK_TIME_SCALE_FACTOR) * (cornersSuckLevel * CORNERS_SUCK_LEVEL_SCALE_FACTOR));
+                    tvHitValue *= (1 + bonusRatio);
+                }
 
                 const hitsPerSecPerBox = IDLE_HITS_PER_SEC_PER_BOX_BASE_FACTOR * tvSpeedFactor;
                 const idleHitsPerTvPerSec = numBoxes * hitsPerSecPerBox * tvHitValue;
                 totalIdleHitsPerSec += idleHitsPerTvPerSec;
             });
-
+            // Apply global synergy bonus AFTER summing individual TV base HPS
             const totalEffectiveIdleHitsPerSec = totalIdleHitsPerSec * globalState.synergyBonus * devSpeedFactor;
             const totalGainedHits = totalEffectiveIdleHitsPerSec * (idleTimeMs / 1000);
-
             return Math.max(0, Math.floor(totalGainedHits));
         }
 
+
         // --- Handle Visibility Change ---
         function handleVisibilityChange() {
-            const now = performance.now();
+            const now = performance.now(); const dateNow = Date.now();
             if (document.hidden) {
-                timeHidden = now;
-                saveGame();
+                timeHidden = now; saveGame();
+                if (gameLoopInterval) { clearInterval(gameLoopInterval); gameLoopInterval = null; }
             } else {
                 if (timeHidden !== null) {
                     const idleTimeMs = now - timeHidden;
-                    if (idleTimeMs > 1000) {
-                         // Recalculate derived states *before* calculating offline gains
+                    if (idleTimeMs >= MIN_OFFLINE_TIME_MS) {
+                         // Ensure state is updated before calculating gains
                          updateAllTvsPostMeta();
                          recalculateGlobalSynergy();
-                         hitsThresholdCache = {}; // Clear cache after potential meta changes during offline
-
+                         hitsThresholdCache = {};
                         const gainedHits = calculateIdleGains(idleTimeMs);
                         if (gainedHits > 0) {
-                            globalState.totalSessionHits += gainedHits;
-                            globalState.lifetimeSessionHits += gainedHits;
+                            globalState.totalSessionHits += gainedHits; globalState.lifetimeSessionHits += gainedHits;
                             showNotification(`Gained ${formatScore(gainedHits)} Hits while tab was inactive.`);
-                            updateTotalHitsDisplay();
-                            updateAllTvGlows();
+                            updateTotalHitsDisplay(); updateAllTvGlows();
+                             if (upgradeModal.classList.contains('show')) {
+                                updateSelectedTvUpgradeButtons(); updateMetaUpgradeButtonsIfVisible(); updateRebootPreviewIfVisible();
+                            }
                         }
                     }
                     timeHidden = null;
                 }
                 lastTimestamp = performance.now();
-                 if (!gameLoopInterval && !document.hidden) {
-                     gameLoopInterval = setInterval(() => gameLoop(performance.now()), TICK_RATE_MS);
-                 }
+                 if (!gameLoopInterval) { gameLoopInterval = setInterval(() => gameLoop(performance.now()), TICK_RATE_MS); }
                  requestAnimationFrame(handleGlobalResize);
                  globalState.tvStates.forEach((tv, index) => checkAndAdjustBoxPositions(index));
+                 updateScreenBurnButtonState(dateNow);
+                 updateCornerBetButtonState();
             }
         }
 
@@ -1831,83 +2308,59 @@
         const devSimulateCornerButton = document.getElementById('dev-simulate-corner');
         const devHardResetButton = document.getElementById('dev-hard-reset');
         const devSpeedInput = document.getElementById('dev-speed-input');
+        const devResetBurnCdButton = document.getElementById('dev-reset-burn-cd');
 
-        if (devButton && devPanel) {
-            devButton.addEventListener('click', () => {
-                devPanel.classList.toggle('hidden');
-            });
-        }
-
+        if (devButton && devPanel) { devButton.addEventListener('click', () => { devPanel.classList.toggle('hidden'); }); }
         if (devSimulateCornerButton) {
             devSimulateCornerButton.addEventListener('click', () => {
-                if (!globalState || !globalState.tvStates || globalState.tvStates.length === 0) {
-                    console.warn("DEV: No TVs available to simulate corner hit.");
-                    showNotification("DEV: No TVs available!");
-                    return;
+                if (!globalState || !globalState.tvStates || globalState.tvStates.length === 0) { showNotification("DEV: No TVs available!"); return; }
+                const tvIndex = Math.floor(Math.random() * globalState.tvStates.length); const tvState = globalState.tvStates[tvIndex];
+                if (!tvState || !tvState.elements || !tvState.elements.screen || !tvState.screenWidth || tvState.screenWidth <= 0) { showNotification("DEV: TV not ready!"); return; }
+                console.log(`DEV: Simulating corner hit on TV #${tvState.id + 1}`);
+
+                tvState.lastCornerHitTimestamp = Date.now();
+                const betWasActive = globalState.isCornerBetActive;
+                if (betWasActive) {
+                    resolveCornerBet(true);
+                     showNotification(`DEV: Simulated Corner Hit (Resolved Bet WIN!)`);
+                } else {
+                    recalculateDerivedTvState(tvState); // Ensure derived values are current
+                    const finalCornerBonus = Math.ceil(tvState.cornerHitBaseBonus * tvState.cornerHitMultiplier * globalState.synergyBonus * devSpeedFactor);
+                    addTvHitScore(finalCornerBonus); updateTotalHitsDisplay();
+                    const cornerX = 0; const cornerY = 0; createSparkParticles(tvState, cornerX, cornerY);
+                    showFloatText(tvState, `CORNER HIT!\n+${formatScore(finalCornerBonus)}`, tvState.screenWidth / 2, tvState.screenHeight / 2, 'corner');
+                    showNotification(`DEV: Simulated Corner Hit on TV ${tvState.id + 1} (+${formatScore(finalCornerBonus)} Hits)`);
+                    updateTvGlow(tvIndex); updateAllTvGlows();
+                    if (upgradeModal.classList.contains('show')) {
+                         hitsThresholdCache = {}; updateSelectedTvUpgradeButtons(); updateMetaUpgradeButtonsIfVisible(); updateRebootPreviewIfVisible();
+                     }
                 }
-                const tvIndex = 0;
-                const tvState = globalState.tvStates[tvIndex];
-                if (!tvState || !tvState.elements || !tvState.elements.screen || !tvState.screenWidth) {
-                    console.warn("DEV: First TV state or elements not ready.");
-                     showNotification("DEV: TV not ready!");
-                    return;
-                }
-
-                console.log(`DEV: Simulating corner hit on TV #${tvState.id}`);
-                const finalCornerBonus = Math.ceil(tvState.cornerHitBaseBonus * tvState.cornerHitMultiplier * globalState.synergyBonus * devSpeedFactor);
-
-                addTvHitScore(finalCornerBonus);
-                updateTotalHitsDisplay();
-
-                const cornerX = 0;
-                const cornerY = 0;
-                createSparkParticles(tvState, cornerX, cornerY);
-                showFloatText(tvState, `CORNER HIT!\n+${formatScore(finalCornerBonus)}`, tvState.screenWidth / 2, tvState.screenHeight / 2, 'corner');
-                showNotification(`DEV: Simulated Corner Hit (+${formatScore(finalCornerBonus)} Hits)`);
-
-                updateTvGlow(tvIndex);
-                updateAllTvGlows();
-                if (upgradeModal.classList.contains('show')) {
-                     hitsThresholdCache = {}; // Clear cache if hits changed
-                     updateSelectedTvUpgradeButtons();
-                     updateMetaUpgradeButtonsIfVisible();
-                     updateRebootPreviewIfVisible();
-                 }
             });
         }
-
-
+        if (devResetBurnCdButton) {
+            devResetBurnCdButton.addEventListener('click', () => {
+                if (globalState) {
+                    globalState.screenBurnCooldownEndTimestamp = 0; updateScreenBurnButtonState(Date.now());
+                    showNotification("DEV: Screen Burn cooldown reset."); console.log("DEV: Screen Burn cooldown reset."); saveGame();
+                }
+            });
+        }
         if (devSpeedInput) {
             devSpeedInput.value = devSpeedFactor;
             devSpeedInput.addEventListener('input', () => {
-                let newSpeed = parseFloat(devSpeedInput.value);
-                if (isNaN(newSpeed) || newSpeed <= 0) {
-                    newSpeed = 0.1;
-                    devSpeedInput.value = newSpeed;
-                }
-
+                let newSpeed = parseFloat(devSpeedInput.value); if (isNaN(newSpeed) || newSpeed <= 0) { newSpeed = 0.1; devSpeedInput.value = newSpeed; }
                 if (devSpeedFactor !== newSpeed) {
-                    devSpeedFactor = newSpeed;
-                    console.log(`DEV: Score Factor set to ${devSpeedFactor}`);
-                    // Optional: Update UI elements affected by score factor if modal is open
-                    if (upgradeModal.classList.contains('show')) {
-                        hitsThresholdCache = {}; // Clear cache if factor changes
-                        updateMetaUpgradeButtonsIfVisible();
-                        updateRebootPreviewIfVisible();
-                    }
+                    devSpeedFactor = newSpeed; console.log(`DEV: Score Factor set to ${devSpeedFactor}`);
+                    if (upgradeModal.classList.contains('show')) { hitsThresholdCache = {}; updateMetaUpgradeButtonsIfVisible(); updateRebootPreviewIfVisible(); }
                 }
             });
         }
-
         if (devHardResetButton) {
             devHardResetButton.addEventListener('click', () => {
                 if (confirm('HARD RESET GAME?\n\nThis will erase ALL saved progress and reload the page.')) {
-                    console.warn("DEV: Performing hard reset.");
-                    localStorage.removeItem(SAVE_KEY);
-                    showNotification("DEV: Hard Resetting...");
-                    if(devPanel) devPanel.classList.add('hidden');
-                    if(gameLoopInterval) clearInterval(gameLoopInterval); // Stop loop before reload
-                    location.reload(true);
+                    console.warn("DEV: Performing hard reset."); localStorage.removeItem(SAVE_KEY);
+                    showNotification("DEV: Hard Resetting..."); if(devPanel) devPanel.classList.add('hidden');
+                    if(gameLoopInterval) clearInterval(gameLoopInterval); location.reload(true);
                 }
             });
         }
@@ -1917,14 +2370,9 @@
         // --- Initialization ---
         async function init() {
              const startTime = performance.now();
-
              try {
-                 console.log("Preloading images...");
-                 await preloadImages([DVD_LOGO_URL, TV_BACKGROUND_URL]);
-                 console.log("Images preloaded.");
-             } catch (error) {
-                 console.error("Image preloading issues:", error);
-             }
+                 console.log("Preloading images..."); await preloadImages([DVD_LOGO_URL, TV_BACKGROUND_URL]); console.log("Images preloaded.");
+             } catch (error) { console.error("Image preloading issues:", error); }
 
              loadGame();
 
@@ -1932,42 +2380,31 @@
              modalCloseButton.addEventListener('click', closeUpgradeModal);
              upgradeModal.addEventListener('click', (e) => { if (e.target === upgradeModal) closeUpgradeModal(); });
              metaMenuButton.addEventListener('click', () => openUpgradeModal(-1));
+             screenBurnButton.addEventListener('click', activateScreenBurn);
+             cornerBetButton.addEventListener('click', activateCornerBet);
              window.addEventListener('resize', handleGlobalResize);
              document.addEventListener('visibilitychange', handleVisibilityChange);
 
              // --- Start Game Loop ---
-             lastTimestamp = performance.now();
-             lastSaveTime = Date.now();
-             if (!document.hidden) {
-                gameLoopInterval = setInterval(() => gameLoop(performance.now()), TICK_RATE_MS);
-             }
+             lastTimestamp = performance.now(); lastSaveTime = Date.now();
+             if (!document.hidden) { gameLoopInterval = setInterval(() => gameLoop(performance.now()), TICK_RATE_MS); }
              console.log("Initialization complete.");
 
              // --- Loading screen minimum time ---
-             const endTime = performance.now();
-             const elapsedTime = endTime - startTime;
+             const endTime = performance.now(); const elapsedTime = endTime - startTime;
              const delayTime = Math.max(0, MIN_LOADING_TIME_MS - elapsedTime);
-
              console.log(`Initialization took ${elapsedTime.toFixed(0)}ms. Delaying hide by ${delayTime.toFixed(0)}ms.`);
-
              setTimeout(() => {
                  if (loadingScreen) {
                      loadingScreen.classList.add('hidden');
-                     setTimeout(() => {
-                         if (loadingScreen && loadingScreen.parentNode) {
-                              loadingScreen.parentNode.removeChild(loadingScreen);
-                         }
-                     }, 500);
+                     setTimeout(() => { if (loadingScreen && loadingScreen.parentNode) { loadingScreen.parentNode.removeChild(loadingScreen); } }, 500);
                  }
              }, delayTime);
         }
 
         // --- Start ---
-        if (document.readyState === 'loading') {
-             document.addEventListener('DOMContentLoaded', init);
-        } else {
-             init();
-        }
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); }
+        else { init(); }
 
     })();
 </script>
