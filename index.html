@@ -998,9 +998,9 @@
         // --- Upgrade Calculation Functions ---
         function deriveTvHitValue(tvState, level) { return Math.max(1, Math.ceil(1 + level * 1.5)); }
         function deriveTvSpeedFactor(tvState, level) { return Math.min(3.0, (1 + level * 0.04) * tvState.baseSpeedFactorMeta); }
-        function deriveTvCornerFlatBonus(tvState, level) { return Math.max(0, Math.floor(2000 + level * 10 + Math.pow(level, 1.55) * 50)); }
+        function deriveTvCornerFlatBonus(tvState, level) { return Math.max(0, Math.floor(2000 + level * 50 + Math.pow(level, 1.55) * 50)); }
         function deriveTvCornerMultiplier(tvState, level) { return 1.0 + level * 0.10; }
-        function deriveTvCollisionBonus(tvState, level) { return Math.max(0, Math.floor(2 + level * 0.5 + Math.pow(level, 1.2))); }
+        function deriveTvCollisionBonus(tvState, level) { return Math.max(0, Math.floor(50 + level * 1.5 + Math.pow(level, 1.5))); }
         function getCurrentTvSpeed(tvState) { return BASE_SPEED_CONSTANT * deriveTvSpeedFactor(tvState, tvState.upgrades.speed); }
         function deriveMetaStaticChargeMult(level) { return 1 + level * 0.07; }
         function deriveMetaBaseSpeedFactor(level) { return 1 + level * 0.03; }
