@@ -1,5 +1,4 @@
-
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1405,7 +1404,7 @@
         const metaUpgrades = [
              { id: 'metaStaticChargeGain', name: 'Static Charge Gain', baseCost: 3, costFactor: 2.2, getLevel: () => globalState.metaLevels.staticChargeGain, applyEffect: () => { globalState.metaLevels.staticChargeGain++; },
                getDescription: (gs, l, c) => `<strong>Static Charge Boost</strong><br>Lv ${l}: +${((deriveMetaStaticChargeMult(l+1)-1)*100).toFixed(0)}% Static Charges<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
-             { id: 'metaAddTv', name: 'Add New TV', baseCost: 5, costFactor: 4.5, getLevel: () => globalState.tvStates.length, applyEffect: () => { addTv(); }, canPurchase: () => true,
+             { id: 'metaAddTv', name: 'Add New TV', baseCost: 1, costFactor: 4.5, getLevel: () => globalState.tvStates.length, applyEffect: () => { addTv(); }, canPurchase: () => true,
                getDescription: (gs, l, c) => `<strong>New Channel</strong><br>Unlock TV #${l + 1}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
              { id: 'metaBaseSpeed', name: 'Base Speed', baseCost: 10, costFactor: 2.8, maxLevel: 15, getLevel: () => globalState.metaLevels.baseSpeed, applyEffect: () => { globalState.metaLevels.baseSpeed++; updateAllTvsPostMeta(); },
                getDescription: (gs, l, c, maxed) => `<strong>System Speed</strong><br>${maxed ? `Max Base Speed (Lv ${l})` : `Lv ${l}: +Base Speed All TVs`}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>` },
@@ -1435,7 +1434,7 @@
                getDescription: (gs, l, c) => {
                    const currentMultiplier = deriveCornerBetMultiplier(l); const nextMultiplier = deriveCornerBetMultiplier(l + 1);
                    let descriptionText = '';
-                   if (l === 0) { descriptionText = `<strong>Unlock: Corner Bet ?</strong><br>Bet ALL Hits on next hit OR corner hit within ${CORNER_BET_TIMEOUT_MS/1000}s.<br>Win: x${nextMultiplier} Hits! Lose: All Hits.<br>`; }
+                   if (l === 0) { descriptionText = `<strong>Unlock: Corner Bet ?</strong><br>Bet ALL Hits on corner hit within ${CORNER_BET_TIMEOUT_MS/1000}s.<br>Win: x${nextMultiplier} Hits! Lose: All Hits.<br>`; }
                    else { descriptionText = `<strong>Corner Bet ?</strong><br>Lv ${l}: Win Multiplier x${currentMultiplier}<br>(Next: x${nextMultiplier})<br>Bet on corner hit within ${CORNER_BET_TIMEOUT_MS/1000}s.<br>`; }
                    descriptionText += `Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>`;
                    return descriptionText;
