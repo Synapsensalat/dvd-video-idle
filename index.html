@@ -256,6 +256,7 @@
         .modal-header .tv-stats { font-size: 0.7em; font-weight: normal; color: #bbb; display: block; margin-top: 5px; }
         .modal-close-button { position: absolute; top: 10px; right: 15px; font-size: 1.8rem; color: var(--disabled-color); background: none; border: none; cursor: pointer; padding: 0; line-height: 1; }
         .modal-close-button:hover { color: var(--text-color); }
+        #modal-tv-options-container { text-align:center; margin-bottom: 10px; }
         #modal-buy-amount-container { display: flex; justify-content: center; gap: 8px; margin-bottom: 15px; }
         .buy-amount-button { background-color: var(--button-bg); color: var(--accent-color); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: background-color 0.2s; }
         .buy-amount-button:hover { background-color: var(--button-hover); }
@@ -611,6 +612,7 @@
             <span id="modal-title">Upgrades</span>
             <span id="modal-tv-stats" class="tv-stats"></span>
         </div>
+        <div id="modal-tv-options-container"></div>
         <div id="modal-buy-amount-container"></div>
         <div id="modal-upgrades-section" class="upgrades-section"></div>
         <div id="modal-reboot-section-container"></div>
@@ -696,6 +698,7 @@
         const modalCloseButton = upgradeModal.querySelector('.modal-close-button');
         const modalTitle = upgradeModal.querySelector('#modal-title');
         const modalTvStats = upgradeModal.querySelector('#modal-tv-stats');
+        const modalTvOptionsContainer = upgradeModal.querySelector('#modal-tv-options-container');
         const modalBuyAmountContainer = upgradeModal.querySelector('#modal-buy-amount-container');
         const modalUpgradesContainer = upgradeModal.querySelector('#modal-upgrades-section');
         const modalRebootContainer = upgradeModal.querySelector('#modal-reboot-section-container');
@@ -1014,6 +1017,8 @@
                  }
              });
 
+            handleAutoBuying();
+
             updateTotalHitsDisplay();
             updateAllTvGlows();
             checkMetaButtonVisibility();
@@ -1037,6 +1042,45 @@
             if (currentTimeForSave - lastSaveTime > 5000) {
                 saveGame();
                 lastSaveTime = currentTimeForSave;
+            }
+        }
+
+        function handleAutoBuying() {
+            if (!globalState || !globalState.tvStates) return;
+
+            for (const tvState of globalState.tvStates) {
+                if (tvState.index < globalState.metaLevels.autoBuyUnlockLevel && tvState.isAutoBuyActive) {
+                    let affordableUpgrades = [];
+                    for (const upgrade of tvUpgrades) {
+                        const currentLevel = upgrade.getLevel(tvState);
+                        let maxLevel;
+                        if (upgrade.id === 'multiBox') maxLevel = globalState.maxBoxesPerTv;
+                        else if (typeof upgrade.getMaxLevel === 'function') maxLevel = upgrade.getMaxLevel(tvState);
+                        else maxLevel = upgrade.maxLevel;
+
+                        const isMaxLevel = (maxLevel !== undefined && currentLevel >= maxLevel);
+                        if (isMaxLevel) continue;
+                        let canPurchaseCheck = typeof upgrade.canPurchase === 'function' ? upgrade.canPurchase(tvState, currentLevel) : true;
+                        if (!canPurchaseCheck) continue;
+
+                        const cost = calculateCost(upgrade.baseCost, currentLevel, upgrade.costFactor, tvState.index);
+                        if (globalState.totalSessionHits >= cost) {
+                            affordableUpgrades.push({ upgrade, cost });
+                        }
+                    }
+
+                    if (affordableUpgrades.length > 0) {
+                        affordableUpgrades.sort((a, b) => a.cost - b.cost);
+                        const { upgrade: upgradeToBuy, cost: costToBuy } = affordableUpgrades[0];
+                        globalState.totalSessionHits -= costToBuy;
+                        if (upgradeToBuy.id === 'multiBox') {
+                            upgradeToBuy.applyEffect(tvState, tvState.index, 1);
+                        } else {
+                            upgradeToBuy.applyEffect(tvState, tvState.index);
+                        }
+                        recalculateDerivedTvState(tvState);
+                    }
+                }
             }
         }
 
@@ -1440,6 +1484,17 @@
                    return descriptionText;
                }
              },
+             { id: 'autoBuyUnlock', name: 'TV Auto-Buyer', baseCost: 200, costFactor: 4.0,
+                 getLevel: () => globalState.metaLevels.autoBuyUnlockLevel,
+                 applyEffect: () => { globalState.metaLevels.autoBuyUnlockLevel++; updateMetaUpgradeButtonsIfVisible(); },
+                 canPurchase: () => globalState.metaLevels.autoBuyUnlockLevel < globalState.tvStates.length,
+                 getDescription: (gs, l, c) => {
+                     if (l >= gs.tvStates.length) { return `<strong>Auto-Buyer</strong><br>All unlocked TVs have<br>auto-buy available.`; }
+                     const tvToUnlock = gs.tvStates[l];
+                     if (!tvToUnlock) return `<strong>Auto-Buyer</strong><br>Purchase more TVs to upgrade.`;
+                     return `<strong>Auto-Buyer</strong><br>Lv ${l}: Unlocks auto-buyer<br>for TV #${tvToUnlock.id + 1}<br>Cost: <span class="upgrade-cost meta">${formatScore(c)}</span>`;
+                 }
+             },
         ];
 
         // --- Upgrade Calculation Functions ---
@@ -1489,12 +1544,30 @@
         // --- Upgrade UI & Modal Logic ---
         function openUpgradeModal(tvIndex = -1) {
             selectedTvIndex = tvIndex;
-            modalUpgradesContainer.innerHTML = ''; modalRebootContainer.innerHTML = ''; modalBuyAmountContainer.innerHTML = '';
+            modalUpgradesContainer.innerHTML = '';
+            modalRebootContainer.innerHTML = '';
+            modalBuyAmountContainer.innerHTML = '';
+            if (modalTvOptionsContainer) modalTvOptionsContainer.innerHTML = '';
 
             if (tvIndex !== -1) {
                 const tvState = globalState.tvStates[tvIndex]; if (!tvState) return;
                 modalTitle.textContent = `TV #${tvState.id + 1} Upgrades`;
                 updateModalTvStats(tvState);
+
+                if (modalTvOptionsContainer && tvIndex < globalState.metaLevels.autoBuyUnlockLevel) {
+                    const toggleBtn = document.createElement('button');
+                    toggleBtn.classList.add('buy-amount-button');
+                    if (tvState.isAutoBuyActive) toggleBtn.classList.add('active');
+                    toggleBtn.textContent = `Auto-Buy: ${tvState.isAutoBuyActive ? 'ON' : 'OFF'}`;
+                    toggleBtn.onclick = () => {
+                        tvState.isAutoBuyActive = !tvState.isAutoBuyActive;
+                        toggleBtn.textContent = `Auto-Buy: ${tvState.isAutoBuyActive ? 'ON' : 'OFF'}`;
+                        toggleBtn.classList.toggle('active');
+                        saveGame();
+                    };
+                    modalTvOptionsContainer.appendChild(toggleBtn);
+                }
+
                 renderBuyAmountButtons();
                 renderUpgradeSection(tvUpgrades, modalUpgradesContainer, 'hit', tvIndex);
             } else {
@@ -2211,6 +2284,7 @@
                 baseSpeedFactorMeta: 1.0, lastCornerHitTimestamp: null,
                 screenWidth: 0, screenHeight: 0,
                 dynamicBoxWidth: 0, dynamicBoxHeight: 0, elements: null, resizeRetryTimeout: null, adjustRetryTimeout: null,
+                isAutoBuyActive: false,
             };
             recalculateDerivedTvState(tvState); // Initialize derived values
             return tvState;
@@ -2221,7 +2295,7 @@
                 version: SAVE_VERSION, systemStaticCharges: 0, totalSessionHits: 0, lifetimeSessionHits: 0, tvStates: [],
                 metaLevels: {
                     staticChargeGain: 0, baseSpeed: 0, baseMaxBoxes: 0, tvSynergyBonus: 0, cornersSuckBonus: 0,
-                    screenBurnLevel: 0, cornerBetLevel: 0
+                    screenBurnLevel: 0, cornerBetLevel: 0, autoBuyUnlockLevel: 0
                 },
                 synergyBonus: 1.0, maxBoxesPerTv: 2, hasRebootedOnce: false, nextTvId: 0, selectedBuyAmount: 1,
                 lastSaveTimestamp: now, screenBurnCooldownEndTimestamp: 0,
